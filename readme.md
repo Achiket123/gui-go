@@ -28,7 +28,7 @@ A lightweight, GPU-accelerated 2D GUI library for Go, specifically designed for 
 `goui` uses CGo to interface with X11 directly. Ensure you have the X11 and OpenGL development headers installed on your system.
 
 ```bash
-go get [github.com/achiket/gui-go](https://github.com/achiket/gui-go)
+go get https://github.com/achiket/gui-go
 
 ```
 
