@@ -1,0 +1,51 @@
+?   	github.com/achiket/gui-go	[no test files]
+goos: linux
+goarch: amd64
+pkg: github.com/achiket/gui-go/animation
+cpu: 12th Gen Intel(R) Core(TM) i5-1235U
+BenchmarkControllerTick-12        	94104319	        13.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTimelineWithTracks-12    	38142657	        30.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTweenMapping-12          	472495274	         2.776 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSequenceTick-12          	271658211	         3.996 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/achiket/gui-go/animation	8.514s
+goos: linux
+goarch: amd64
+pkg: github.com/achiket/gui-go/canvas
+cpu: 12th Gen Intel(R) Core(TM) i5-1235U
+BenchmarkDrawRect-12           	99270128	        13.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDrawRoundedRect-12    	100000000	        11.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDrawCircle-12         	109532152	        11.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDrawText-12           	 2318874	       473.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeasureText-12        	 2540492	       431.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDrawPath-12           	100000000	        11.37 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/achiket/gui-go/canvas	10.982s
+?   	github.com/achiket/gui-go/examples/animation	[no test files]
+?   	github.com/achiket/gui-go/examples/counter	[no test files]
+?   	github.com/achiket/gui-go/examples/demo	[no test files]
+?   	github.com/achiket/gui-go/examples/routing	[no test files]
+?   	github.com/achiket/gui-go/examples/scrollables	[no test files]
+?   	github.com/achiket/gui-go/examples/shapes	[no test files]
+?   	github.com/achiket/gui-go/platform	[no test files]
+?   	github.com/achiket/gui-go/render	[no test files]
+goos: linux
+goarch: amd64
+pkg: github.com/achiket/gui-go/render/gl
+cpu: 12th Gen Intel(R) Core(TM) i5-1235U
+BenchmarkBatchPushQuad-12        	60814432	        31.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBatchPushTriangle-12    	97704465	        13.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBatchReset-12           	1000000000	         0.5965 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/achiket/gui-go/render/gl	4.041s
+?   	github.com/achiket/gui-go/render/software	[no test files]
+goos: linux
+goarch: amd64
+pkg: github.com/achiket/gui-go/ui
+cpu: 12th Gen Intel(R) Core(TM) i5-1235U
+BenchmarkNavigatorHandleEvent-12    	295683902	         5.494 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNavigatorTick-12           	416767232	         2.738 ns/op	       0 B/op	       0 allocs/op
+BenchmarkButtonHandleEvent-12       	353832572	         3.021 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/achiket/gui-go/ui	6.802s
+?   	github.com/achiket/gui-go/ui/layout	[no test files]
