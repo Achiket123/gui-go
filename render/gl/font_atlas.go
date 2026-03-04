@@ -53,18 +53,21 @@ func LoadSystemFont(name string, size float32) (*FontAtlas, error) {
 	var foundPath string
 	lowerName := strings.ToLower(name)
 	for _, dir := range dirs {
-		filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if walkErr := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 			if err != nil || d == nil {
 				return nil
 			}
 			if !d.IsDir() && strings.HasSuffix(strings.ToLower(d.Name()), ".ttf") {
 				if strings.Contains(strings.ToLower(d.Name()), lowerName) {
 					foundPath = path
-					return fmt.Errorf("found") // custom error to break WalkDir early
+					return fmt.Errorf("found") // break early
 				}
 			}
 			return nil
-		})
+		}); walkErr != nil && walkErr.Error() != "found" {
+			// real walk error — log and continue to next directory
+			_ = walkErr
+		}
 		if foundPath != "" {
 			return LoadFont(foundPath, size)
 		}
@@ -214,7 +217,9 @@ func (a *FontAtlas) Size() float32 { return a.size }
 // Destroy frees the GPU texture.
 func (a *FontAtlas) Destroy() {
 	DeleteTexture(a.texture)
-	a.face.Close()
+	if err := a.face.Close(); err != nil {
+		_ = err // resource teardown — nothing to do
+	}
 }
 
 // circleVertices returns a fan of triangle vertices for a filled circle.

@@ -37,9 +37,10 @@ func DefaultTextInputStyle() TextInputStyle {
 
 // TextInput is a single-line text input field.
 type TextInput struct {
-	Text  string
-	Hint  string
-	Style TextInputStyle
+	Text     string
+	Hint     string
+	Style    TextInputStyle
+	OnChange func(string)
 
 	bounds    canvas.Rect
 	focused   bool
@@ -103,6 +104,9 @@ func (t *TextInput) HandleEvent(e Event) bool {
 			}
 			t.cursorOn = true
 			t.blinkTime = 0
+			if t.OnChange != nil {
+				t.OnChange(t.Text)
+			}
 			return true
 		}
 		if len(e.Key) == 1 { // Simple printable character check
@@ -115,6 +119,9 @@ func (t *TextInput) HandleEvent(e Event) bool {
 			t.Text += char
 			t.cursorOn = true
 			t.blinkTime = 0
+			if t.OnChange != nil {
+				t.OnChange(t.Text)
+			}
 			return true
 		}
 		if e.Key == "space" {

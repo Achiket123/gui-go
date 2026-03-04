@@ -15,6 +15,8 @@ type ButtonStyle struct {
 	TextStyle    canvas.TextStyle
 	BorderRadius float32
 	Padding      canvas.EdgeInsets
+	BorderColor  canvas.Color
+	BorderWidth  float32
 }
 
 // DefaultButtonStyle returns a sensible dark-themed button style.

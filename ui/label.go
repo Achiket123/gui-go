@@ -13,8 +13,9 @@ const (
 	AlignRight
 )
 
-// Label is a simple styled text component with no interaction.
-type Label struct {
+// SimpleLabel is a simple styled text component with no interaction.
+// For advanced text rendering with word-wrap, ellipsis, and alignment, use Label from widgets.go.
+type SimpleLabel struct {
 	Text  string
 	Style canvas.TextStyle
 	Align LabelAlign
@@ -22,16 +23,16 @@ type Label struct {
 	bounds canvas.Rect
 }
 
-// NewLabel creates a Label with given text and style.
-func NewLabel(text string, style canvas.TextStyle) *Label {
-	return &Label{Text: text, Style: style}
+// NewSimpleLabel creates a SimpleLabel with given text and style.
+func NewSimpleLabel(text string, style canvas.TextStyle) *SimpleLabel {
+	return &SimpleLabel{Text: text, Style: style}
 }
 
-func (l *Label) Bounds() canvas.Rect      { return l.bounds }
-func (l *Label) Tick(_ float64)           {}
-func (l *Label) HandleEvent(_ Event) bool { return false }
+func (l *SimpleLabel) Bounds() canvas.Rect      { return l.bounds }
+func (l *SimpleLabel) Tick(_ float64)           {}
+func (l *SimpleLabel) HandleEvent(_ Event) bool { return false }
 
-func (l *Label) Draw(c *canvas.Canvas, x, y, w, h float32) {
+func (l *SimpleLabel) Draw(c *canvas.Canvas, x, y, w, h float32) {
 	l.bounds = canvas.Rect{X: x, Y: y, W: w, H: h}
 	sz := c.MeasureText(l.Text, l.Style)
 	var tx float32

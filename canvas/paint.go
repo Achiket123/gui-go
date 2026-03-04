@@ -68,7 +68,7 @@ func Hex(h string) Color {
 			v |= uint64(c-'A') + 10
 		}
 	}
-	return RGBA8(uint8(v>>16), uint8(v>>8), uint8(v), 255)
+	return RGBA8(uint8((v>>16)&0xFF), uint8((v>>8)&0xFF), uint8(v&0xFF), 255)
 }
 
 // Lerp linearly interpolates between two colors.

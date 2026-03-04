@@ -71,7 +71,7 @@ func Hex(hex string) Color {
 		panic(fmt.Sprintf("goui.Hex: invalid hex color %q: %v", "#"+hex, err))
 	}
 	return Color{
-		R: uint8(v >> 16),
+		R: uint8((v >> 16) & 0xff),
 		G: uint8((v >> 8) & 0xff),
 		B: uint8(v & 0xff),
 	}
