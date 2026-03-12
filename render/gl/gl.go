@@ -1,14 +1,23 @@
 package gl
 
 /*
-#cgo LDFLAGS: -lGL -lX11
+#cgo linux LDFLAGS: -lGL
+#cgo darwin LDFLAGS: -framework OpenGL
+#cgo windows LDFLAGS: -lopengl32
 
 #define GL_GLEXT_PROTOTYPES 1
+#if defined(__APPLE__)
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+#else
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <GL/glx.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
+
+extern void* getGLProcAddress(char* name);
+
 
 // --- Extension function pointers ---
 // We load them at runtime via glXGetProcAddress (done from Go side).
@@ -78,7 +87,7 @@ static PFNGLUNIFORMMATRIX3FV     pUniformMatrix3fv;
 static PFNGLUNIFORMMATRIX4FV     pUniformMatrix4fv;
 static PFNGLACTIVETEXTURE_FN     pActiveTexture;
 
-#define LOAD(name, type, sym) name = (type)glXGetProcAddressARB((const GLubyte*)sym)
+#define LOAD(name, type, sym) name = (type)(uintptr_t)getGLProcAddress(sym)
 
 static void goGLInit(void) {
     LOAD(pGenBuffers,              PFNGLGENBUFFERS,              "glGenBuffers");
@@ -208,7 +217,8 @@ import (
 
 // InitExtensions loads all OpenGL extension function pointers.
 // Must be called after MakeCurrent().
-func InitExtensions() {
+func InitExtensions(loader func(string) unsafe.Pointer) {
+	getProc = loader
 	C.goGLInit()
 }
 

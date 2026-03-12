@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/achiket123/gui-go/render"
@@ -42,14 +43,33 @@ func LoadFont(path string, size float32) (*FontAtlas, error) {
 	return newAtlasFromBytes(data, size)
 }
 
+// systemFontDirs returns the OS-specific directories to search for system fonts.
+func systemFontDirs() []string {
+	switch runtime.GOOS {
+	case "windows":
+		return []string{
+			os.Getenv("WINDIR") + `\Fonts`,
+			os.Getenv("LOCALAPPDATA") + `\Microsoft\Windows\Fonts`,
+		}
+	case "darwin":
+		return []string{
+			"/System/Library/Fonts",
+			"/Library/Fonts",
+			os.Getenv("HOME") + "/Library/Fonts",
+		}
+	default: // linux / bsd
+		return []string{
+			"/usr/share/fonts",
+			"/usr/local/share/fonts",
+			os.Getenv("HOME") + "/.fonts",
+			os.Getenv("HOME") + "/.local/share/fonts",
+		}
+	}
+}
+
 // LoadSystemFont searches common system font directories for a font by name recursively.
 func LoadSystemFont(name string, size float32) (*FontAtlas, error) {
-	dirs := []string{
-		"/usr/share/fonts",
-		"/usr/local/share/fonts",
-		os.Getenv("HOME") + "/.fonts",
-		os.Getenv("HOME") + "/.local/share/fonts",
-	}
+	dirs := systemFontDirs()
 	var foundPath string
 	lowerName := strings.ToLower(name)
 	for _, dir := range dirs {

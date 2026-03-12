@@ -5,21 +5,14 @@ import (
 	"image/color"
 	_ "image/png" // register PNG decoder
 	"os"
-	"unsafe"
-
-	"github.com/achiket123/gui-go/platform"
 )
 
-// Image is a wrapper around a pixel buffer that can be drawn to a Canvas.
-// Internally it keeps a 32-bit BGRX byte slice that matches what X11 expects.
+// Internally it keeps a 32-bit RGBA byte slice.
 type Image struct {
 	width  int
 	height int
-	// pixels stores raw pixel data in BGRX byte order (4 bytes per pixel).
+	// pixels stores raw pixel data in RGBA byte order (4 bytes per pixel).
 	pixels []byte
-
-	// ximg is the lazy-created XImage handle; created on first draw call.
-	ximg *platform.XImageHandle
 }
 
 // NewImage creates a blank (transparent/black) image of the given dimensions.
@@ -68,17 +61,16 @@ func (img *Image) offset(x, y int) int {
 	return (y*img.width + x) * 4
 }
 
-// SetPixelRaw sets a pixel directly with RGB components (BGRX layout).
+// SetPixelRaw sets a pixel directly with RGB components (RGBA layout).
 func (img *Image) SetPixelRaw(x, y int, r, g, b uint8) {
 	if x < 0 || y < 0 || x >= img.width || y >= img.height {
 		return
 	}
 	off := img.offset(x, y)
-	img.pixels[off+0] = b // B
-	img.pixels[off+1] = g // G
-	img.pixels[off+2] = r // R
-	img.pixels[off+3] = 0 // X (unused / padding)
-	img.ximg = nil        // Invalidate cached XImage
+	img.pixels[off+0] = r   // R
+	img.pixels[off+1] = g   // G
+	img.pixels[off+2] = b   // B
+	img.pixels[off+3] = 255 // A
 }
 
 // SetPixel sets a pixel using a goui Color.
@@ -93,29 +85,13 @@ func (img *Image) GetPixel(x, y int) Color {
 	}
 	off := img.offset(x, y)
 	return Color{
-		R: img.pixels[off+2],
+		R: img.pixels[off+0],
 		G: img.pixels[off+1],
-		B: img.pixels[off+0],
+		B: img.pixels[off+2],
 	}
 }
 
-// ensureXImage creates or recreates the XImage handle if needed.
-func (img *Image) ensureXImage(display unsafe.Pointer, screen int) {
-	if img.ximg != nil {
-		return
-	}
-	img.ximg = platform.CreateXImage(display, screen, img.width, img.height, img.pixels)
-}
-
-// xImageHandle returns the platform XImageHandle, creating it if necessary.
-// Used by Canvas.DrawImage.
-func (img *Image) xImageHandle(display unsafe.Pointer, screen int) *platform.XImageHandle {
-	img.ensureXImage(display, screen)
-	return img.ximg
-}
-
-// Destroy frees the underlying XImage. Call when you no longer need this image.
+// Destroy frees the underlying image. Call when you no longer need this image.
 func (img *Image) Destroy() {
-	platform.DestroyXImage(img.ximg)
-	img.ximg = nil
+	img.pixels = nil
 }

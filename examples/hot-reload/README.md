@@ -20,10 +20,18 @@ goui-counter/
 │   ├── counter_app.go     # App, CounterWidget, ButtonBar
 │   └── counter_test.go    # State + history tests
 ├── scripts/
-│   └── dev.sh             # Hot-reload wrapper script
+│   └── dev.sh             # Hot-reload wrapper script (Linux/macOS only)
 ├── Makefile
 └── go.mod
 ```
+
+> [!NOTE]
+> `scripts/dev.sh` and `make dev` require a POSIX shell (Linux or macOS).
+> On **Windows**, build and run the debug binary manually:
+> ```bat
+> go build -tags debug -o bin\counter-debug.exe .\cmd\counter
+> .\bin\counter-debug.exe
+> ```
 
 ---
 

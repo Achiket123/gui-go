@@ -26,8 +26,8 @@ type GlyphMetrics struct {
 // Thread safety: all calls must be made from the render goroutine (LockOSThread).
 type Renderer interface {
 	// Init creates the rendering context on the native window.
-	// display and xwin are the unsafe.Pointer values from platform/x11.go.
-	Init(display, xwin interface{}, w, h int) error
+	// Init creates the rendering context on the native window.
+	Init(ctx interface{}, loadProc interface{}, w, h int) error
 
 	// Resize updates the viewport when the window is resized.
 	Resize(w, h int)

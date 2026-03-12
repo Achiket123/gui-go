@@ -3,20 +3,11 @@ package goui
 import (
 	"fmt"
 	"strconv"
-	"unsafe"
-
-	"github.com/achiket123/gui-go/platform"
 )
 
 // Color represents an RGB color.
 type Color struct {
 	R, G, B uint8
-}
-
-// ToXPixel converts a Color to an X11 pixel value using XAllocColor.
-// display and colormap are C pointers passed as unsafe.Pointer.
-func (c Color) ToXPixel(display, colormap unsafe.Pointer) uint64 {
-	return platform.AllocColor(display, colormap, c.R, c.G, c.B)
 }
 
 // --- Predefined color constants ---

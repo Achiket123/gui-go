@@ -2,7 +2,7 @@ package goui
 
 import (
 	"runtime"
-	"unsafe"
+	"sync"
 
 	"github.com/achiket123/gui-go/canvas"
 	"github.com/achiket123/gui-go/platform"
@@ -11,20 +11,11 @@ import (
 	"github.com/achiket123/gui-go/ui"
 )
 
-// Window represents a top-level X11 window.
+// Window represents a top-level window.
 // Create one with NewWindow, register callbacks, then call Show() to display it.
 type Window struct {
-	// X11 core handles (unsafe.Pointer to keep this file CGo-free)
-	display  unsafe.Pointer
-	xwin     uintptr
-	gc       unsafe.Pointer
-	colormap unsafe.Pointer
-	pixmap   uintptr // offscreen double-buffer pixmap
-	screen   int
-	depth    int
-
-	// Font state
-	currentFont unsafe.Pointer
+	// Platform handle
+	handle *platform.WindowHandle
 
 	// Window state
 	width, height int
@@ -33,9 +24,6 @@ type Window struct {
 
 	// Colors
 	bgColor Color
-
-	// WM_DELETE_WINDOW atom
-	wmDeleteWindow uint64
 
 	// Animation ticker list — the loop calls Tick(delta) on each per frame
 	animations []Animatable
@@ -52,7 +40,6 @@ type Window struct {
 	components []ui.Component
 
 	// User callbacks
-	onDraw       func(c *Canvas)        // v1: old Xlib canvas
 	onDrawCanvas func(c *canvas.Canvas) // v2: GL/SW canvas
 	onMouseClick func(e MouseEvent)
 	onMouseMove  func(e MouseEvent)
@@ -72,74 +59,45 @@ type tlWrapper struct {
 	tl interface{ Tick(float64) bool }
 }
 
-// NewWindow creates and configures an X11 window.
+// windowCount tracks the number of active windows.
+var (
+	windowInitMu sync.Mutex
+	windowCount  int
+)
+
+// NewWindow creates and configures a window.
 // The window is not yet visible — call Show() to make it appear.
 // This is the canonical constructor; use it directly or via the goui package.
 func NewWindow(title string, width, height int) *Window {
-	// Open display
-	display := platform.OpenDisplay()
-	if display == nil {
-		panic("goui: cannot open X display — is DISPLAY set?")
+	// Initialize platform backend if not already done.
+	windowInitMu.Lock()
+	if windowCount == 0 {
+		err := platform.Init()
+		if err != nil {
+			windowInitMu.Unlock()
+			panic("goui: cannot initialize platform: " + err.Error())
+		}
+	}
+	windowCount++
+	windowInitMu.Unlock()
+
+	handle, err := platform.CreateWindow(title, width, height)
+	if err != nil {
+		panic("goui: cannot create window: " + err.Error())
 	}
 
-	screen := platform.DefaultScreen(display)
-	root := platform.DefaultRootWindow(display)
-	colormap := platform.DefaultColormap(display, screen)
-	depth := platform.DefaultDepth(display, screen)
-
-	// Allocate colors for window border and background
 	bgColor := Color{30, 30, 30}
-	bgPixel := bgColor.ToXPixel(display, colormap)
-	fgPixel := White.ToXPixel(display, colormap)
-
-	xwin := platform.CreateSimpleWindow(
-		display, root,
-		0, 0, width, height,
-		1,
-		fgPixel, bgPixel,
-	)
-
-	// Set title
-	platform.StoreName(display, xwin, title)
-
-	// Register interest in events
-	mask := platform.ExposureMask |
-		platform.KeyPressMask |
-		platform.KeyReleaseMask |
-		platform.ButtonPressMask |
-		platform.ButtonReleaseMask |
-		platform.PointerMotionMask |
-		platform.StructureNotifyMask
-	platform.SelectInput(display, xwin, mask)
-
-	// Create Graphics Context
-	gc := platform.CreateGC(display, xwin)
-
-	// Register WM_DELETE_WINDOW so we get notified when user clicks ✕
-	wmDelete := platform.InternAtom(display, "WM_DELETE_WINDOW", false)
-	platform.SetWMProtocols(display, xwin, []uint64{wmDelete})
 
 	return &Window{
-		display:        display,
-		xwin:           xwin,
-		gc:             gc,
-		colormap:       colormap,
-		screen:         screen,
-		depth:          depth,
-		width:          width,
-		height:         height,
-		title:          title,
-		bgColor:        bgColor,
-		wmDeleteWindow: wmDelete,
+		handle:  handle,
+		width:   width,
+		height:  height,
+		title:   title,
+		bgColor: bgColor,
 	}
 }
 
 // --- Callback registration ---
-
-// OnDraw registers the v1 Xlib draw callback (backward compat).
-func (w *Window) OnDraw(fn func(c *Canvas)) {
-	w.onDraw = fn
-}
 
 // OnDrawGL registers the v2 GPU-accelerated canvas draw callback.
 // This enables the OpenGL renderer automatically when Show() is called.
@@ -182,15 +140,21 @@ func (w *Window) OnClose(fn func()) {
 // SetTitle updates the window title bar text.
 func (w *Window) SetTitle(title string) {
 	w.title = title
-	platform.StoreName(w.display, w.xwin, title)
+	if w.handle != nil {
+		w.handle.SetTitle(title)
+	}
 }
 
 // Resize changes the window dimensions.
 func (w *Window) Resize(width, height int) {
 	w.width = width
 	w.height = height
-	platform.ResizeWindow(w.display, w.xwin, width, height)
-	w.rebuildPixmap()
+	if w.handle != nil {
+		w.handle.Resize(width, height)
+	}
+	if w.renderer != nil {
+		w.renderer.Resize(width, height)
+	}
 }
 
 // AddAnimation registers an Animatable (Tween, Sequence, Sprite) to be ticked
@@ -223,27 +187,21 @@ func (w *Window) Close() {
 // It must be called from the goroutine that owns the window.
 // It does not return until the window is closed.
 func (w *Window) Show() {
-	// Pin this goroutine to a single OS thread — required for X11 and OpenGL.
+	// Pin this goroutine to a single OS thread — required for OpenGL.
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	platform.MapWindow(w.display, w.xwin)
+	w.handle.Show()
 
 	// If an OnDrawGL callback was registered OR components were added, initialise the GL renderer.
 	if w.onDrawCanvas != nil || len(w.components) > 0 {
 		glr := gl.NewGL2DRenderer()
-		if err := glr.Init(w.display, w.xwin, w.width, w.height); err == nil {
+		if err := glr.Init(w.handle, platform.GetProcAddress, w.width, w.height); err == nil {
 			w.renderer = glr
 			w.rendererIsGL = true
 		} else {
-			// GL failed — fall through to Pixmap loop (OnDrawGL won't render, but won't crash).
 			w.onDrawCanvas = nil
 		}
-	}
-
-	if !w.rendererIsGL {
-		// v1: Create double-buffering pixmap
-		w.rebuildPixmap()
 	}
 
 	// Start the render loop
@@ -252,33 +210,29 @@ func (w *Window) Show() {
 
 	// Cleanup
 	if w.renderer != nil {
-		// GL cleanup handled by renderer
-	} else if w.pixmap != 0 {
-		platform.FreePixmap(w.display, w.pixmap)
+		w.renderer.(*gl.GL2DRenderer).Destroy()
 	}
-	platform.FreeGC(w.display, w.gc)
-	platform.DestroyWindow(w.display, w.xwin)
-	platform.CloseDisplay(w.display)
+	w.handle.Destroy()
+
+	windowInitMu.Lock()
+	windowCount--
+	if windowCount == 0 {
+		platform.Terminate()
+	}
+	windowInitMu.Unlock()
 }
 
 // --- Internal helpers ---
 
-func (w *Window) rebuildPixmap() {
-	if w.pixmap != 0 {
-		platform.FreePixmap(w.display, w.pixmap)
-	}
-	w.pixmap = platform.CreatePixmap(w.display, w.xwin, w.width, w.height, w.depth)
-}
-
-// dispatchEvent translates a raw platform.XEventData into typed goui events
+// dispatchEvent translates a raw platform.EventData into typed goui events
 // and fires the registered callbacks.
-func (w *Window) dispatchEvent(ev platform.XEventData) {
+func (w *Window) dispatchEvent(ev platform.EventData) {
 	switch ev.Type {
-	case platform.Expose:
+	case platform.EventExpose:
 		// Just trigger a redraw — handled by loop.
 
-	case platform.KeyPress:
-		shift := ev.State&platform.ShiftMask != 0
+	case platform.EventKeyPress:
+		shift := ev.State&platform.ModShift != 0
 		e := ui.Event{Type: ui.EventKeyDown, Key: ev.KeySym, Shift: shift}
 		for i := len(w.components) - 1; i >= 0; i-- {
 			if w.components[i].HandleEvent(e) {
@@ -290,47 +244,25 @@ func (w *Window) dispatchEvent(ev platform.XEventData) {
 				KeyCode: ev.KeyCode,
 				KeySym:  ev.KeySym,
 				Type:    "press",
-				Shift:   ev.State&platform.ShiftMask != 0,
-				Ctrl:    ev.State&platform.ControlMask != 0,
-				Alt:     ev.State&platform.Mod1Mask != 0,
+				Shift:   ev.State&platform.ModShift != 0,
+				Ctrl:    ev.State&platform.ModControl != 0,
+				Alt:     ev.State&platform.ModAlt != 0,
 			})
 		}
 
-	case platform.KeyRelease:
+	case platform.EventKeyRelease:
 		if w.onKeyRelease != nil {
 			w.onKeyRelease(KeyEvent{
 				KeyCode: ev.KeyCode,
 				KeySym:  ev.KeySym,
 				Type:    "release",
-				Shift:   ev.State&platform.ShiftMask != 0,
-				Ctrl:    ev.State&platform.ControlMask != 0,
-				Alt:     ev.State&platform.Mod1Mask != 0,
+				Shift:   ev.State&platform.ModShift != 0,
+				Ctrl:    ev.State&platform.ModControl != 0,
+				Alt:     ev.State&platform.ModAlt != 0,
 			})
 		}
 
-	case platform.ButtonPress:
-		if ev.Button == 4 || ev.Button == 5 {
-			sy := float32(-1)
-			if ev.Button == 5 {
-				sy = 1
-			}
-			e := ui.Event{
-				Type:    ui.EventScroll,
-				X:       float32(ev.X),
-				Y:       float32(ev.Y),
-				ScrollY: sy,
-			}
-			for i := len(w.components) - 1; i >= 0; i-- {
-				if w.components[i].HandleEvent(e) {
-					return
-				}
-			}
-			if w.onMouseClick != nil {
-				w.onMouseClick(MouseEvent{X: ev.X, Y: ev.Y, Button: ev.Button, Type: "press"})
-			}
-			return
-		}
-
+	case platform.EventButtonPress:
 		e := ui.Event{Type: ui.EventMouseDown, X: float32(ev.X), Y: float32(ev.Y), Button: ev.Button}
 		for i := len(w.components) - 1; i >= 0; i-- {
 			if w.components[i].HandleEvent(e) {
@@ -341,7 +273,7 @@ func (w *Window) dispatchEvent(ev platform.XEventData) {
 			w.onMouseClick(MouseEvent{X: ev.X, Y: ev.Y, Button: ev.Button, Type: "press"})
 		}
 
-	case platform.ButtonRelease:
+	case platform.EventButtonRelease:
 		e := ui.Event{Type: ui.EventMouseUp, X: float32(ev.X), Y: float32(ev.Y), Button: ev.Button}
 		for i := len(w.components) - 1; i >= 0; i-- {
 			if w.components[i].HandleEvent(e) {
@@ -352,7 +284,7 @@ func (w *Window) dispatchEvent(ev platform.XEventData) {
 			w.onMouseClick(MouseEvent{X: ev.X, Y: ev.Y, Button: ev.Button, Type: "release"})
 		}
 
-	case platform.MotionNotify:
+	case platform.EventMotionNotify:
 		e := ui.Event{Type: ui.EventMouseMove, X: float32(ev.X), Y: float32(ev.Y)}
 		for i := len(w.components) - 1; i >= 0; i-- {
 			if w.components[i].HandleEvent(e) {
@@ -363,33 +295,45 @@ func (w *Window) dispatchEvent(ev platform.XEventData) {
 			w.onMouseMove(MouseEvent{X: ev.X, Y: ev.Y, Type: "move"})
 		}
 
-	case platform.ConfigureNotify:
+	case platform.EventScroll:
+		e := ui.Event{
+			Type:    ui.EventScroll,
+			X:       float32(ev.X),
+			Y:       float32(ev.Y),
+			ScrollY: float32(-ev.ScrollY),
+		}
+		for i := len(w.components) - 1; i >= 0; i-- {
+			if w.components[i].HandleEvent(e) {
+				return
+			}
+		}
+		if w.onMouseClick != nil {
+			// Legacy compat: map scroll to button 4 (up) / 5 (down), X11 convention.
+			// ev.ScrollY > 0 from GLFW means scroll up.
+			btn := 5 // scroll down
+			if ev.ScrollY > 0 {
+				btn = 4 // scroll up
+			}
+			w.onMouseClick(MouseEvent{X: ev.X, Y: ev.Y, Button: btn, Type: "press"})
+		}
+
+	case platform.EventConfigureNotify:
 		if ev.Width > 0 && ev.Height > 0 &&
 			(ev.Width != w.width || ev.Height != w.height) {
 			w.width = ev.Width
 			w.height = ev.Height
 			if w.renderer != nil {
 				w.renderer.Resize(ev.Width, ev.Height)
-			} else {
-				w.rebuildPixmap()
 			}
 			if w.onResize != nil {
 				w.onResize(ev.Width, ev.Height)
 			}
 		}
 
-	case platform.DestroyNotify:
+	case platform.EventDestroyNotify:
 		w.running = false
 		if w.onClose != nil {
 			w.onClose()
-		}
-
-	case platform.ClientMessage:
-		if ev.Atom == w.wmDeleteWindow {
-			if w.onClose != nil {
-				w.onClose()
-			}
-			w.running = false
 		}
 	}
 }

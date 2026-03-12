@@ -14,7 +14,8 @@ type MouseEvent struct {
 
 // KeyEvent carries information about a key press or release.
 type KeyEvent struct {
-	// KeyCode is the raw X11 keycode.
+	// KeyCode is the raw platform keycode (e.g., GLFW key constant).
+	// It is platform-dependent; prefer KeySym for portable character mapping.
 	KeyCode int
 	// KeySym is the named symbol, e.g. "a", "Return", "Escape", "space".
 	KeySym string

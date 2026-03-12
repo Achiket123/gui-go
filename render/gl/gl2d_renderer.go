@@ -98,7 +98,7 @@ void main() {
 // GL2DRenderer implements render.Renderer using OpenGL 2.1 + GLSL 1.20.
 // It deliberately targets OpenGL 2.1 for maximum hardware compatibility.
 type GL2DRenderer struct {
-	ctx   *GLContext
+	ctx   ContextProvider
 	prog  uint32
 	batch *Batch
 
@@ -122,21 +122,18 @@ func NewGL2DRenderer() *GL2DRenderer {
 	return &GL2DRenderer{opacity: 1.0}
 }
 
-// Init creates the GLX context and compiles shaders.
-func (r *GL2DRenderer) Init(display, xwin interface{}, w, h int) error {
-	dpy := display.(unsafe.Pointer)
-	win := xwin.(uintptr)
-	screenNum := 0 // default screen
+// Init sets up the OpenGL renderer on the provided ContextProvider.
+func (r *GL2DRenderer) Init(ctx interface{}, loadProc interface{}, w, h int) error {
+	r.ctx = ctx.(ContextProvider)
+	loader := loadProc.(func(string) unsafe.Pointer)
 
-	var err error
-	r.ctx, err = CreateContext(dpy, win, screenNum)
-	if err != nil {
-		return fmt.Errorf("GL2DRenderer: %w", err)
-	}
+	// Ensure platform context is active before loading extensions
+	r.ctx.MakeContextCurrent()
 
-	InitExtensions()
+	InitExtensions(loader)
 	EnableBlend()
 
+	var err error
 	r.prog, err = CompileProgram(shapeVert, shapeFrag)
 	if err != nil {
 		return fmt.Errorf("GL2DRenderer: shaders: %w", err)
@@ -442,5 +439,6 @@ func (r *GL2DRenderer) Destroy() {
 	if r.fontAtlas != nil {
 		r.fontAtlas.Destroy()
 	}
-	r.ctx.Destroy()
+	// Note: We don't call r.ctx.Destroy() here because the platform WindowHandle
+	// owns the context destruction now.
 }

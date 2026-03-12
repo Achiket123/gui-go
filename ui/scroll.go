@@ -8,7 +8,9 @@ import (
 
 const (
 	ScrollbarWidth  = 10
-	scrollMomentumK = 12.0
+	scrollMomentumK = 4.0    // lower = longer-lasting momentum
+	scrollSpeed     = 500.0  // pixels/s of velocity per scroll notch
+	scrollMaxV      = 3000.0 // px/s velocity cap
 )
 
 // ScrollView is a retained component that clips and scrolls any content
@@ -130,7 +132,12 @@ func (s *ScrollView) HandleEvent(e Event) bool {
 	switch e.Type {
 	case EventScroll:
 		if inBounds {
-			s.velocity += e.ScrollY * -barW * 6
+			s.velocity += e.ScrollY * scrollSpeed
+			if s.velocity > scrollMaxV {
+				s.velocity = scrollMaxV
+			} else if s.velocity < -scrollMaxV {
+				s.velocity = -scrollMaxV
+			}
 			return true
 		}
 
@@ -167,9 +174,9 @@ func (s *ScrollView) HandleEvent(e Event) bool {
 		}
 		switch e.Key {
 		case "Down":
-			s.velocity = barW * 8
+			s.velocity = scrollSpeed
 		case "Up":
-			s.velocity = -barW * 8
+			s.velocity = -scrollSpeed
 		case "Next": // Page Down
 			s.scrollY += s.bounds.H * 0.8
 			s.clamp()

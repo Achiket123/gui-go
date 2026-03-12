@@ -1,7 +1,7 @@
-// Package goui is a lightweight, zero-dependency Go GUI library for Linux (X11).
+// Package goui is a lightweight, zero-dependency Go GUI library for Linux, Windows, and macOS.
 //
-// It uses CGo to call Xlib directly — no external Go packages required.
-// All X11 complexity is hidden behind a clean, idiomatic Go API.
+// It uses CGo to communicate with the OS via GLFW — only one system dependency required.
+// All complexity is hidden behind a clean, idiomatic Go API.
 //
 // # Quick start
 //
