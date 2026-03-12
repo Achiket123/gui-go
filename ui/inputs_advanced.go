@@ -1,9 +1,10 @@
 // Package ui — inputs_advanced.go
 //
 // Advanced input widgets:
-//   MultiLineTextInput — scrollable textarea with full cursor editing
-//   NumberInput        — numeric field with +/− stepper buttons
-//   SearchInput        — text field with search icon, clear button, debounce
+//
+//	MultiLineTextInput — scrollable textarea with full cursor editing
+//	NumberInput        — numeric field with +/− stepper buttons
+//	SearchInput        — text field with search icon, clear button, debounce
 package ui
 
 import (
@@ -14,8 +15,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/theme"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/theme"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -24,17 +25,17 @@ import (
 
 // MultiLineStyle configures a MultiLineTextInput.
 type MultiLineStyle struct {
-	Background   canvas.Color
-	Border       canvas.Color
-	FocusBorder  canvas.Color
-	Radius       float32
-	TextStyle    canvas.TextStyle
-	HintStyle    canvas.TextStyle
-	CursorColor  canvas.Color
-	SelectBg     canvas.Color
-	LineHeight   float32 // multiplier (default 1.5)
-	Padding      canvas.EdgeInsets
-	ScrollbarW   float32
+	Background  canvas.Color
+	Border      canvas.Color
+	FocusBorder canvas.Color
+	Radius      float32
+	TextStyle   canvas.TextStyle
+	HintStyle   canvas.TextStyle
+	CursorColor canvas.Color
+	SelectBg    canvas.Color
+	LineHeight  float32 // multiplier (default 1.5)
+	Padding     canvas.EdgeInsets
+	ScrollbarW  float32
 }
 
 // DefaultMultiLineStyle returns a theme-aware MultiLineStyle.
@@ -491,10 +492,10 @@ type SearchInput struct {
 	Debounce time.Duration // default 300 ms
 	OnSearch func(query string)
 
-	inner   *TextInput
-	timer   *time.Timer
-	last    string
-	bounds  canvas.Rect
+	inner  *TextInput
+	timer  *time.Timer
+	last   string
+	bounds canvas.Rect
 }
 
 // NewSearchInput creates a SearchInput.
@@ -572,4 +573,3 @@ func (si *SearchInput) Draw(c *canvas.Canvas, x, y, w, h float32) {
 			canvas.TextStyle{Color: th.Colors.TextSecondary, Size: 12})
 	}
 }
-

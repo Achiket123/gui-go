@@ -7,7 +7,7 @@ import (
 	"os"
 	"unsafe"
 
-	"github.com/achiket/gui-go/platform"
+	"github.com/achiket123/gui-go/platform"
 )
 
 // Image is a wrapper around a pixel buffer that can be drawn to a Canvas.

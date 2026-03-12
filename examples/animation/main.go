@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	goui "github.com/achiket/gui-go"
-	"github.com/achiket/gui-go/animation"
-	"github.com/achiket/gui-go/canvas"
+	goui "github.com/achiket123/gui-go"
+	"github.com/achiket123/gui-go/animation"
+	"github.com/achiket123/gui-go/canvas"
 )
 
 const (

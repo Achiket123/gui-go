@@ -23,8 +23,8 @@
 package ui
 
 import (
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/theme"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/theme"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────

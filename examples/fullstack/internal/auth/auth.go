@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/achiket/taskflow/internal/db"
-	"github.com/achiket/taskflow/internal/models"
+	"github.com/achiket123/taskflow/internal/db"
+	"github.com/achiket123/taskflow/internal/models"
 )
 
 const (
@@ -65,10 +65,10 @@ func CheckPassword(hash, password string) error {
 // ─── JWT Claims ───────────────────────────────────────────────────────────────
 
 type jwtClaims struct {
-	UserID      string           `json:"uid"`
-	Email       string           `json:"email"`
-	Role        models.UserRole  `json:"role"`
-	WorkspaceID string           `json:"wid,omitempty"`
+	UserID      string          `json:"uid"`
+	Email       string          `json:"email"`
+	Role        models.UserRole `json:"role"`
+	WorkspaceID string          `json:"wid,omitempty"`
 	jwt.RegisteredClaims
 }
 

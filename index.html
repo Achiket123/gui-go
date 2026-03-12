@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gui-go — Native GUI for Go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════
+   TOKENS
+════════════════════════════════════════════════ */
+:root {
+  --bg:        #0c0e15;
+  --bg1:       #111420;
+  --bg2:       #171b2a;
+  --bg3:       #1e2335;
+  --line:      #252c42;
+  --muted:     #556080;
+  --body:      #8a96bc;
+  --bright:    #cdd3ef;
+  --white:     #eef0f9;
+
+  --gold:      #e8a930;
+  --gold-lt:   #f5c96a;
+  --gold-dk:   #9c6c14;
+  --gold-glow: rgba(232,169,48,.14);
+
+  --teal:      #2fcfb5;
+  --red:       #e85d5d;
+  --lime:      #8fd44b;
+  --sky:       #4db8e8;
+
+  --mono: 'JetBrains Mono', monospace;
+  --body-font: 'Cabinet Grotesk', sans-serif;
+  --display: 'Fraunces', serif;
+
+  --r: 10px;
+  --r-lg: 16px;
+}
+
+/* ── Reset & Base ─────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--body);
+  font-family: var(--body-font);
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── Custom Cursor ───────────────────────────── */
+#cursor {
+  width: 10px; height: 10px;
+  background: var(--gold);
+  border-radius: 50%;
+  position: fixed; z-index: 9999;
+  pointer-events: none;
+  transform: translate(-50%,-50%);
+  transition: transform .08s, width .2s, height .2s, background .2s;
+  mix-blend-mode: difference;
+}
+#cursor-ring {
+  width: 34px; height: 34px;
+  border: 1.5px solid rgba(232,169,48,.5);
+  border-radius: 50%;
+  position: fixed; z-index: 9998;
+  pointer-events: none;
+  transform: translate(-50%,-50%);
+  transition: transform .18s, width .2s, height .2s, border-color .2s, opacity .2s;
+}
+body:has(a:hover) #cursor,
+body:has(button:hover) #cursor { width: 18px; height: 18px; background: var(--gold-lt); }
+body:has(a:hover) #cursor-ring,
+body:has(button:hover) #cursor-ring { width: 50px; height: 50px; opacity: 0; }
+
+/* ── Grain overlay ───────────────────────────── */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9000;
+  pointer-events: none;
+  opacity: .028;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px;
+}
+
+/* ── Scrollbar ───────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg1); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Selection ───────────────────────────────── */
+::selection { background: rgba(232,169,48,.25); color: var(--gold-lt); }
+
+/* ── Typography ──────────────────────────────── */
+h1,h2,h3,h4,h5 { color: var(--white); line-height: 1.15; }
+a { color: var(--gold); text-decoration: none; transition: color .15s; }
+a:hover { color: var(--gold-lt); }
+code, pre { font-family: var(--mono); }
+
+/* ── Container ───────────────────────────────── */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+.wrap-sm { max-width: 860px; margin: 0 auto; padding: 0 32px; }
+
+/* ════════════════════════════════════════════════
+   NAV
+════════════════════════════════════════════════ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  transition: background .4s, backdrop-filter .4s, border-color .4s;
+  border-bottom: 1px solid transparent;
+}
+nav.stuck {
+  background: rgba(12,14,21,.85);
+  backdrop-filter: blur(24px) saturate(1.4);
+  border-color: var(--line);
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 68px; padding: 0 40px;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--display); font-weight: 900; font-size: 22px;
+  color: var(--white); letter-spacing: -.02em;
+  text-decoration: none;
+}
+.logo-icon {
+  width: 38px; height: 38px; flex-shrink: 0;
+}
+.nav-links {
+  display: flex; align-items: center; gap: 4px; list-style: none;
+}
+.nav-links a {
+  font-size: 14px; font-weight: 700; color: var(--muted);
+  padding: 7px 14px; border-radius: 8px;
+  transition: color .15s, background .15s;
+  letter-spacing: .01em;
+}
+.nav-links a:hover { color: var(--white); background: var(--bg2); }
+.nav-gh {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--gold) !important; color: var(--bg) !important;
+  font-weight: 800 !important; padding: 8px 18px !important;
+  border-radius: 9px !important; font-size: 13px !important;
+  letter-spacing: .02em !important;
+  transition: transform .15s, box-shadow .15s !important;
+  box-shadow: 0 0 0 0 rgba(232,169,48,0);
+}
+.nav-gh:hover { transform: translateY(-1px) !important; box-shadow: 0 6px 28px rgba(232,169,48,.28) !important; }
+
+/* ════════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════════ */
+.hero {
+  min-height: 100vh;
+  padding: 140px 40px 80px;
+  display: flex; flex-direction: column; align-items: flex-start;
+  position: relative; overflow: hidden;
+}
+
+/* angled background stripe */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -20%; right: -15%; width: 70%; height: 120%;
+  background: radial-gradient(ellipse 60% 70% at 60% 40%,
+    rgba(232,169,48,.07) 0%,
+    rgba(47,207,181,.04) 40%,
+    transparent 70%);
+  pointer-events: none;
+}
+
+/* background grid dots */
+.hero-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(circle, var(--line) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 0%, transparent 100%);
+  opacity: .5;
+}
+
+/* floating blobs */
+.blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(70px); pointer-events: none; opacity: .5;
+}
+.blob-1 { width:500px; height:400px; top:-80px; right:-80px; background:radial-gradient(var(--gold-glow),transparent 70%); }
+.blob-2 { width:300px; height:300px; bottom:10%; left:10%; background:radial-gradient(rgba(47,207,181,.06),transparent 70%); }
+
+.hero-content { position: relative; z-index: 2; max-width: 780px; }
+
+.hero-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: 100px; padding: 7px 18px 7px 10px;
+  margin-bottom: 36px;
+  font-size: 12px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--gold);
+  animation: fadeUp .7s ease both;
+}
+.pill-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+  animation: pulseGold 2s ease infinite;
+}
+
+.hero-h1 {
+  font-family: var(--display);
+  font-size: clamp(54px, 7.5vw, 108px);
+  font-weight: 900;
+  color: var(--white);
+  letter-spacing: -.04em;
+  line-height: .95;
+  animation: fadeUp .7s .08s ease both;
+}
+.hero-h1 .italic { font-style: italic; color: var(--gold); }
+.hero-h1 .outline {
+  -webkit-text-stroke: 2px var(--white);
+  color: transparent;
+}
+
+.hero-sub {
+  font-size: 19px; color: var(--muted); max-width: 520px;
+  margin-top: 28px; line-height: 1.7; font-weight: 400;
+  animation: fadeUp .7s .16s ease both;
+}
+
+.hero-actions {
+  display: flex; gap: 14px; margin-top: 44px; flex-wrap: wrap;
+  animation: fadeUp .7s .24s ease both;
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: none; cursor: none; border-radius: var(--r);
+  font-family: var(--body-font); font-weight: 800;
+  font-size: 14px; letter-spacing: .02em;
+  transition: all .2s; text-decoration: none;
+  position: relative; overflow: hidden;
+}
+.btn::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.12), transparent);
+  opacity: 0; transition: opacity .2s;
+}
+.btn:hover::after { opacity: 1; }
+.btn-fill {
+  background: var(--gold); color: var(--bg);
+  padding: 14px 30px;
+  box-shadow: 0 4px 32px rgba(232,169,48,.3), 0 1px 0 rgba(255,255,255,.15) inset;
+}
+.btn-fill:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(232,169,48,.4); color: var(--bg); }
+.btn-ghost {
+  background: var(--bg2); color: var(--bright);
+  padding: 14px 26px; border: 1px solid var(--line);
+}
+.btn-ghost:hover { background: var(--bg3); border-color: var(--muted); transform: translateY(-1px); color: var(--bright); }
+
+/* ── Hero right: mascot + floating widgets ─── */
+.hero-right {
+  position: absolute; right: 48px; top: 50%; transform: translateY(-52%);
+  width: 460px; height: 560px;
+  z-index: 2;
+}
+
+/* Mascot SVG container */
+.mascot-wrap {
+  position: absolute; bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 240px; height: 280px;
+  animation: mascotFloat 4s ease-in-out infinite;
+}
+@keyframes mascotFloat {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-14px); }
+}
+
+/* shadow under mascot */
+.mascot-shadow {
+  position: absolute; bottom: -8px; left: 50%;
+  transform: translateX(-50%);
+  width: 120px; height: 16px;
+  background: radial-gradient(var(--gold-glow),transparent 70%);
+  border-radius: 50%;
+  animation: shadowPulse 4s ease-in-out infinite;
+}
+@keyframes shadowPulse {
+  0%,100% { width:120px; opacity:.7; }
+  50% { width:80px; opacity:.35; }
+}
+
+/* floating widget cards */
+.float-card {
+  position: absolute;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(12px);
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 16px 48px rgba(0,0,0,.4);
+  transition: box-shadow .2s, border-color .2s;
+}
+.float-card:hover { border-color: var(--gold); box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 0 1px var(--gold-glow); }
+.float-card.dragging { cursor: grabbing; box-shadow: 0 30px 80px rgba(0,0,0,.6); z-index: 100; }
+
+/* card: fps */
+.card-fps { top: 20px; left: 10px; padding: 14px 18px; min-width: 160px; }
+.fps-row { display: flex; align-items: baseline; gap: 6px; }
+.fps-num { font-family: var(--mono); font-size: 32px; font-weight: 700; color: var(--lime); line-height: 1; }
+.fps-label { font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.fps-bar-wrap { display: flex; gap: 2px; margin-top: 8px; }
+.fps-bar {
+  width: 4px; border-radius: 2px;
+  background: var(--lime); opacity: .3;
+  transition: height .3s, opacity .3s;
+}
+
+/* card: signal */
+.card-signal { top: 20px; right: 20px; padding: 14px 18px; min-width: 190px; }
+.sig-title { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.sig-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sig-val { font-family: var(--mono); font-size: 28px; font-weight: 700; color: var(--gold); }
+.sig-btns { display: flex; flex-direction: column; gap: 4px; }
+.sig-btn {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg3); color: var(--bright);
+  font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  cursor: none; transition: background .15s, border-color .15s, transform .1s;
+  font-family: var(--mono);
+}
+.sig-btn:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); transform: scale(1.08); }
+
+/* card: toast */
+.card-toast {
+  bottom: 160px; right: 0;
+  padding: 12px 16px; min-width: 220px;
+  display: flex; align-items: center; gap: 10px;
+}
+.toast-stripe { width: 3px; height: 32px; border-radius: 2px; background: var(--lime); flex-shrink: 0; }
+.toast-stripe.warn { background: var(--gold); }
+.toast-stripe.err  { background: var(--red); }
+.toast-txt { font-size: 13px; color: var(--bright); }
+.toast-sub { font-size: 11px; color: var(--muted); }
+
+/* card: button demo */
+.card-btn-demo { bottom: 70px; left: 0; padding: 16px 20px; min-width: 180px; }
+.demo-btn {
+  width: 100%; padding: 10px 0; border-radius: 8px;
+  background: var(--gold); color: var(--bg);
+  border: none; cursor: none;
+  font-family: var(--body-font); font-weight: 800; font-size: 13px;
+  transition: transform .15s, box-shadow .15s;
+  text-align: center;
+}
+.demo-btn:hover { transform: scale(1.04); box-shadow: 0 6px 20px rgba(232,169,48,.3); }
+.demo-label { font-size: 10px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+
+/* hero badges */
+.hero-badges {
+  display: flex; gap: 16px; margin-top: 52px;
+  animation: fadeUp .7s .32s ease both;
+  flex-wrap: wrap;
+}
+.hbadge {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--muted); font-weight: 500;
+}
+.hbadge-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* ════════════════════════════════════════════════
+   TICKER
+════════════════════════════════════════════════ */
+.ticker-wrap {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg1);
+  overflow: hidden; white-space: nowrap;
+  padding: 12px 0;
+}
+.ticker-inner {
+  display: inline-flex; gap: 0;
+  animation: ticker 28s linear infinite;
+}
+.ticker-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 40px;
+  font-size: 12px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.ticker-item span { color: var(--gold); }
+.ticker-sep { color: var(--line); }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ════════════════════════════════════════════════
+   FEATURES
+════════════════════════════════════════════════ */
+.features { padding: 100px 0; }
+.section-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-eyebrow::after {
+  content: ''; flex: 1; max-width: 48px; height: 1px; background: var(--gold);
+}
+.section-h { font-family: var(--display); font-size: clamp(32px, 4vw, 54px); font-weight: 900; letter-spacing: -.03em; margin-bottom: 16px; }
+.section-p { font-size: 17px; color: var(--muted); max-width: 520px; line-height: 1.75; }
+
+.feat-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin-top: 64px;
+}
+@media(max-width:900px){.feat-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.feat-grid{grid-template-columns:1fr;}}
+
+.feat-cell {
+  background: var(--bg1);
+  padding: 36px 32px;
+  transition: background .2s;
+  position: relative;
+}
+.feat-cell:hover { background: var(--bg2); }
+.feat-cell::after {
+  content: '';
+  position: absolute; bottom: 0; left: 32px; right: 32px; height: 0;
+  background: var(--gold);
+  transition: height .25s;
+}
+.feat-cell:hover::after { height: 2px; }
+
+.feat-icon {
+  font-size: 28px; margin-bottom: 20px;
+  display: inline-block;
+  animation: none;
+  transition: transform .2s;
+}
+.feat-cell:hover .feat-icon { transform: scale(1.15) rotate(-5deg); }
+.feat-cell h3 { font-size: 17px; font-weight: 800; color: var(--white); margin-bottom: 10px; }
+.feat-cell p { font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+.feat-tag {
+  display: inline-block; margin-top: 14px;
+  font-family: var(--mono); font-size: 11px; color: var(--teal);
+  background: rgba(47,207,181,.08); border: 1px solid rgba(47,207,181,.2);
+  border-radius: 4px; padding: 3px 9px;
+}
+
+/* ════════════════════════════════════════════════
+   DOCS LAYOUT
+════════════════════════════════════════════════ */
+#docs { padding: 80px 0 120px; }
+.docs-wrap { display: grid; grid-template-columns: 260px 1fr; gap: 0; align-items: start; }
+@media(max-width:900px){ .docs-wrap { grid-template-columns:1fr; } }
+
+/* ── Doc sidebar ──────────────────────────────── */
+.doc-sidebar {
+  position: sticky; top: 88px;
+  background: var(--bg1); border: 1px solid var(--line);
+  border-radius: var(--r-lg); overflow: hidden;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+}
+.doc-sidebar::-webkit-scrollbar { width: 3px; }
+.doc-sidebar::-webkit-scrollbar-thumb { background: var(--line); }
+
+.dsec-head {
+  font-size: 10px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--gold);
+  padding: 14px 20px 6px; margin-top: 4px;
+}
+.dsec-head:first-child { margin-top: 0; }
+.dlink {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 20px; font-size: 13px; color: var(--muted);
+  transition: color .15s, background .15s;
+  cursor: pointer; font-weight: 600;
+}
+.dlink:hover { color: var(--bright); background: var(--bg2); }
+.dlink.on { color: var(--gold); background: rgba(232,169,48,.07); border-right: 2px solid var(--gold); }
+.dlink-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background .15s; }
+.dlink.on .dlink-dot { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+
+/* ── Doc content ─────────────────────────────── */
+.doc-content { padding-left: 56px; min-width: 0; }
+@media(max-width:900px){ .doc-content { padding-left: 0; padding-top: 32px; } }
+
+.doc-pane { display: none; opacity: 0; transition: opacity .25s; }
+.doc-pane.on { display: block; opacity: 1; }
+
+/* doc typography */
+.doc-pane h2 {
+  font-family: var(--display); font-size: 42px; font-weight: 900;
+  letter-spacing: -.03em; color: var(--white); margin-bottom: 8px;
+  line-height: 1.05;
+  border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 24px;
+}
+.doc-pane h3 {
+  font-size: 22px; font-weight: 800; color: var(--white);
+  margin: 40px 0 12px; display: flex; align-items: center; gap: 10px;
+}
+.doc-pane h3::after { content:''; height:1px; flex:1; background: var(--line); }
+.doc-pane h4 { font-size: 15px; font-weight: 800; color: var(--bright); margin: 24px 0 8px; }
+.doc-pane p { color: var(--body); margin: 14px 0; line-height: 1.8; }
+.doc-pane ul, .doc-pane ol { margin: 12px 0 12px 22px; color: var(--body); }
+.doc-pane li { margin: 7px 0; line-height: 1.7; }
+.doc-pane strong { color: var(--bright); font-weight: 800; }
+
+/* inline code */
+ic { display: inline; font-family: var(--mono); font-size: .88em; color: var(--teal); background: rgba(47,207,181,.08); border: 1px solid rgba(47,207,181,.18); border-radius: 4px; padding: 1px 6px; }
+
+/* code block */
+.cb {
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--r-lg); overflow: hidden; margin: 24px 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,.3);
+}
+.cb-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 18px; background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+}
+.cb-dots { display: flex; gap: 6px; }
+.cb-dot { width: 11px; height: 11px; border-radius: 50%; }
+.cb-dot-r { background: #ff5f57; }
+.cb-dot-y { background: #febc2e; }
+.cb-dot-g { background: #28c840; }
+.cb-lang { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+.cb-copy {
+  font-size: 11px; color: var(--muted); background: none; border: none;
+  cursor: none; font-family: var(--body-font); font-weight: 700;
+  padding: 4px 10px; border-radius: 5px; transition: color .15s, background .15s;
+}
+.cb-copy:hover { color: var(--gold); background: var(--gold-glow); }
+.cb pre {
+  padding: 22px 22px; font-size: 13px; line-height: 1.8;
+  overflow-x: auto; color: var(--body);
+}
+
+/* syntax highlight tokens */
+.k { color: var(--sky); }        /* keyword */
+.fn { color: var(--gold); }      /* function */
+.s { color: var(--lime); }       /* string */
+.t { color: var(--teal); }       /* type */
+.c { color: var(--muted); font-style: italic; }  /* comment */
+.n { color: var(--red); }        /* number */
+.p { color: var(--bright); }     /* punctuation */
+
+/* prop tables */
+.ptable { width:100%; border-collapse:collapse; margin:20px 0; font-size:13.5px; }
+.ptable th {
+  text-align:left; padding:10px 14px;
+  background:var(--bg2); color:var(--muted);
+  font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
+  border-bottom:1px solid var(--line);
+}
+.ptable td { padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.6; }
+.ptable tr:last-child td { border-bottom:none; }
+.ptable tr:hover td { background:var(--bg2); }
+.ptable td:first-child { font-family:var(--mono); color:var(--teal); font-size:12px; }
+.ptable td:nth-child(2) { font-family:var(--mono); color:var(--sky); font-size:12px; }
+.ptable td:nth-child(3) { color:var(--body); }
+
+/* callout */
+.note {
+  border-radius:var(--r); padding:14px 18px; margin:24px 0;
+  display:flex; gap:12px; align-items:flex-start; font-size:14px;
+}
+.note p { margin:0; line-height:1.65; }
+.note-ico { font-size:18px; flex-shrink:0; margin-top:1px; }
+.note-info  { background:rgba(77,184,232,.07); border:1px solid rgba(77,184,232,.2); color:var(--sky); }
+.note-warn  { background:rgba(232,169,48,.07); border:1px solid rgba(232,169,48,.22); color:var(--gold-lt); }
+.note-tip   { background:rgba(143,212,75,.07); border:1px solid rgba(143,212,75,.2); color:var(--lime); }
+.note-info p,.note-warn p,.note-tip p { color: var(--bright); }
+
+/* widget overview cards */
+.wcard-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:24px 0; }
+@media(max-width:700px){.wcard-grid{grid-template-columns:1fr;}}
+.wcard {
+  background:var(--bg2); border:1px solid var(--line);
+  border-radius:var(--r-lg); padding:20px 22px;
+  transition:border-color .2s, transform .2s;
+}
+.wcard:hover { border-color:var(--gold); transform:translateY(-2px); }
+.wcard h4 { font-family:var(--mono); font-size:13px; color:var(--gold); font-weight:700; margin:0 0 6px; }
+.wcard p { font-size:13px; color:var(--muted); margin:0; line-height:1.6; }
+
+/* anim easing grid */
+.ease-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px 0; }
+@media(max-width:700px){.ease-grid{grid-template-columns:1fr 1fr;}}
+.ease-card {
+  background:var(--bg2); border:1px solid var(--line);
+  border-radius:var(--r); padding:14px 16px;
+  cursor:none; transition:border-color .2s;
+}
+.ease-card:hover { border-color:var(--teal); }
+.ease-card h5 { font-family:var(--mono); font-size:12px; color:var(--teal); font-weight:700; margin:0 0 2px; }
+.ease-card p  { font-size:11.5px; color:var(--muted); margin:0; }
+.ease-preview {
+  height: 36px; margin-top: 10px; border-radius: 4px; overflow: hidden;
+  position: relative; background: var(--bg3);
+}
+.ease-ball {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--teal);
+  position: absolute; top: 50%; transform: translateY(-50%);
+  left: 8px;
+}
+
+/* arch diagram */
+.arch {
+  background:var(--bg2); border:1px solid var(--line);
+  border-radius:var(--r-lg); padding:36px; margin:24px 0;
+  overflow-x:auto;
+}
+.arch-layer { display:flex; gap:10px; justify-content:center; margin:6px 0; flex-wrap:wrap; }
+.arch-box {
+  padding:10px 22px; border-radius:var(--r);
+  font-size:12px; font-weight:800; text-align:center;
+  font-family:var(--mono); white-space:nowrap; min-width:110px;
+}
+.arch-arrow { text-align:center; color:var(--muted); font-size:18px; margin:2px 0; }
+
+/* showcase section */
+.showcase { padding:100px 0; background:var(--bg1); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.show-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:60px; }
+@media(max-width:900px){.show-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.show-grid{grid-template-columns:1fr;}}
+.show-card {
+  background:var(--bg); border:1px solid var(--line);
+  border-radius:var(--r-lg); overflow:hidden;
+  transition:transform .25s, box-shadow .25s, border-color .25s;
+}
+.show-card:hover { transform:translateY(-6px); box-shadow:0 24px 56px rgba(0,0,0,.5); border-color:var(--gold); }
+.show-preview {
+  height:180px; display:flex; align-items:center; justify-content:center;
+  border-bottom:1px solid var(--line);
+  position:relative; overflow:hidden;
+}
+.show-body { padding:22px; }
+.show-body h3 { font-size:16px; font-weight:800; color:var(--white); margin-bottom:6px; }
+.show-body p { font-size:13px; color:var(--muted); }
+.show-tag {
+  display:inline-block; margin-top:12px;
+  font-family:var(--mono); font-size:11px; color:var(--gold);
+  background:var(--gold-glow); border:1px solid rgba(232,169,48,.2);
+  border-radius:4px; padding:2px 8px;
+}
+
+/* ════════════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════════════ */
+footer { background:var(--bg1); border-top:1px solid var(--line); padding:56px 0 40px; }
+.foot-inner { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:32px; }
+.foot-brand { max-width:280px; }
+.foot-brand-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.foot-brand-name { font-family:var(--display); font-weight:900; font-size:20px; color:var(--white); }
+.foot-brand p { font-size:13px; color:var(--muted); line-height:1.7; }
+.foot-links { display:flex; gap:24px; flex-wrap:wrap; }
+.foot-links a { font-size:13px; font-weight:600; color:var(--muted); transition:color .15s; }
+.foot-links a:hover { color:var(--gold); }
+.foot-copy { padding-top:32px; border-top:1px solid var(--line); margin-top:32px; font-size:12px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+
+/* ════════════════════════════════════════════════
+   KEYFRAMES
+════════════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(28px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes pulseGold {
+  0%,100% { box-shadow:0 0 6px var(--gold); opacity:1; }
+  50%     { box-shadow:0 0 14px var(--gold); opacity:.7; }
+}
+
+/* reveal on scroll */
+.rv { opacity:0; transform:translateY(32px); transition:opacity .7s ease, transform .7s ease; }
+.rv.visible { opacity:1; transform:none; }
+.rv-d1 { transition-delay:.08s; }
+.rv-d2 { transition-delay:.16s; }
+.rv-d3 { transition-delay:.24s; }
+
+/* ════════════════════════════════════════════════
+   MOBILE
+════════════════════════════════════════════════ */
+@media(max-width:1100px){ .hero-right { display:none; } }
+@media(max-width:700px) {
+  .nav-links li:not(:last-child) { display:none; }
+  .hero { padding:120px 24px 60px; }
+  #cursor,#cursor-ring { display:none; }
+  body { cursor:auto; }
+  .btn { cursor:pointer; }
+  .sig-btn,.demo-btn { cursor:pointer; }
+  .float-card { cursor:grab; }
+}
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- ══════════════════════════════════════════════
+     NAV
+══════════════════════════════════════════════ -->
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <!-- inline fox mascot (small) -->
+      <svg class="logo-icon" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="38" height="38" rx="10" fill="#1e2335"/>
+        <path d="M7 26 L11 14 L15 19 L19 10 L23 19 L27 14 L31 26 Z" fill="#e8a930" opacity=".9"/>
+        <circle cx="19" cy="22" r="7" fill="#e8a930"/>
+        <circle cx="19" cy="22" r="5" fill="#c47c0a"/>
+        <circle cx="17" cy="21" r="1.5" fill="#fff" opacity=".9"/>
+        <circle cx="21" cy="21" r="1.5" fill="#fff" opacity=".9"/>
+        <circle cx="17.4" cy="21.4" r=".6" fill="#1e2335"/>
+        <circle cx="21.4" cy="21.4" r=".6" fill="#1e2335"/>
+        <path d="M17 24 Q19 25.5 21 24" stroke="#fff" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".7"/>
+      </svg>
+      gui-go
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#docs" onclick="show('overview')">Docs</a></li>
+      <li><a href="#docs" onclick="show('widgets')">Widgets</a></li>
+      <li><a href="#docs" onclick="show('animations')">Animations</a></li>
+      <li><a href="#showcase">Examples</a></li>
+      <li><a href="https://github.com/achiket123/gui-go" class="nav-gh">⭐ GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════ -->
+<section class="hero" id="home">
+  <div class="hero-grid"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <div class="hero-content">
+    <div class="hero-pill">
+      <div class="pill-dot"></div>
+      OpenGL · Native · Pure Go
+    </div>
+
+    <h1 class="hero-h1">
+      Build <span class="italic">native</span><br>
+      <span class="outline">GUI</span> apps<br>
+      in Go.
+    </h1>
+
+    <p class="hero-sub">
+      A production-grade, OpenGL-accelerated widget toolkit. Reactive signals, 20&thinsp;+ widgets, spring animations, hot-reload — zero runtime dependencies.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#docs" class="btn btn-fill" onclick="show('overview')">Get Started →</a>
+      <a href="#features" class="btn btn-ghost">Explore Features</a>
+    </div>
+
+    <div class="hero-badges">
+      <span class="hbadge"><span class="hbadge-dot" style="background:var(--lime)"></span>CGo · X11 · Linux</span>
+      <span class="hbadge"><span class="hbadge-dot" style="background:var(--sky)"></span>Go 1.21+</span>
+      <span class="hbadge"><span class="hbadge-dot" style="background:var(--gold)"></span>MIT License</span>
+      <span class="hbadge"><span class="hbadge-dot" style="background:var(--teal)"></span>107 source files</span>
+    </div>
+  </div>
+
+  <!-- Floating right panel -->
+  <div class="hero-right" id="heroRight">
+
+    <!-- FPS card -->
+    <div class="float-card card-fps" id="fc1">
+      <div class="fps-label">Frame Rate</div>
+      <div class="fps-row">
+        <span class="fps-num" id="fpsNum">60</span>
+        <span style="font-family:var(--mono);font-size:14px;color:var(--muted)">fps</span>
+      </div>
+      <div class="fps-bar-wrap" id="fpsBars"></div>
+    </div>
+
+    <!-- Signal counter card -->
+    <div class="float-card card-signal" id="fc2">
+      <div class="sig-title">state.Signal[int]</div>
+      <div class="sig-row">
+        <span class="sig-val" id="sigVal">7</span>
+        <div class="sig-btns">
+          <button class="sig-btn" onclick="sigChange(1)">+</button>
+          <button class="sig-btn" onclick="sigChange(-1)">−</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast card -->
+    <div class="float-card card-toast" id="fc3">
+      <div class="toast-stripe"></div>
+      <div>
+        <div class="toast-txt">State updated!</div>
+        <div class="toast-sub">ToastSuccess · 3s</div>
+      </div>
+    </div>
+
+    <!-- Button demo card -->
+    <div class="float-card card-btn-demo" id="fc4">
+      <div class="demo-label">ui.Button</div>
+      <div class="demo-btn" id="demoBtn" onclick="demoClick()">Click me</div>
+    </div>
+
+    <!-- Mascot -->
+    <div class="mascot-wrap" id="mascot">
+      <div class="mascot-shadow"></div>
+      <!-- Full mascot SVG — a stylised fox/ferret -->
+      <svg viewBox="0 0 240 280" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+        <!-- tail -->
+        <path d="M60 240 Q20 270 30 210 Q40 180 80 200 Z" fill="#c47c0a" opacity=".85"/>
+        <path d="M62 238 Q28 262 36 212 Q44 188 76 204 Z" fill="#e8a930" opacity=".6"/>
+        <!-- body -->
+        <ellipse cx="120" cy="210" rx="55" ry="52" fill="#c47c0a"/>
+        <!-- belly -->
+        <ellipse cx="120" cy="220" rx="30" ry="34" fill="#f5c96a" opacity=".7"/>
+        <!-- left arm -->
+        <path d="M68 200 Q50 210 55 230 Q60 240 70 230 Q80 220 80 205 Z" fill="#c47c0a"/>
+        <!-- right arm -->
+        <path d="M172 200 Q190 210 185 230 Q180 240 170 230 Q160 220 160 205 Z" fill="#c47c0a"/>
+        <!-- paws left -->
+        <ellipse cx="60" cy="233" rx="14" ry="9" fill="#e8a930"/>
+        <!-- paws right -->
+        <ellipse cx="180" cy="233" rx="14" ry="9" fill="#e8a930"/>
+        <!-- neck -->
+        <ellipse cx="120" cy="162" rx="34" ry="28" fill="#c47c0a"/>
+        <!-- head -->
+        <ellipse cx="120" cy="120" rx="52" ry="50" fill="#e8a930"/>
+        <!-- ear left -->
+        <path d="M80 80 L68 42 L104 72 Z" fill="#e8a930"/>
+        <path d="M80 80 L74 52 L100 74 Z" fill="#f5c96a" opacity=".6"/>
+        <!-- ear right -->
+        <path d="M160 80 L172 42 L136 72 Z" fill="#e8a930"/>
+        <path d="M160 80 L166 52 L140 74 Z" fill="#f5c96a" opacity=".6"/>
+        <!-- face white patch -->
+        <ellipse cx="120" cy="130" rx="30" ry="26" fill="#fde9a8" opacity=".6"/>
+        <!-- eyes -->
+        <ellipse cx="104" cy="112" rx="11" ry="12" fill="#1e2335"/>
+        <ellipse cx="136" cy="112" rx="11" ry="12" fill="#1e2335"/>
+        <!-- eye shine -->
+        <circle cx="107" cy="109" r="3.5" fill="#fff" opacity=".9"/>
+        <circle cx="139" cy="109" r="3.5" fill="#fff" opacity=".9"/>
+        <circle cx="107" cy="108" r="1.4" fill="white"/>
+        <circle cx="139" cy="108" r="1.4" fill="white"/>
+        <!-- pupils -->
+        <ellipse cx="105.5" cy="111" rx="5" ry="7" fill="#0c0e15"/>
+        <ellipse cx="137.5" cy="111" rx="5" ry="7" fill="#0c0e15"/>
+        <!-- nose -->
+        <ellipse cx="120" cy="128" rx="6" ry="4" fill="#c47c0a"/>
+        <ellipse cx="120" cy="127" rx="4" ry="2.5" fill="#1e2335"/>
+        <!-- mouth -->
+        <path d="M114 133 Q120 138 126 133" stroke="#1e2335" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <!-- whiskers left -->
+        <line x1="90" y1="128" x2="112" y2="130" stroke="#f5c96a" stroke-width="1" opacity=".7"/>
+        <line x1="88" y1="133" x2="112" y2="132" stroke="#f5c96a" stroke-width="1" opacity=".7"/>
+        <line x1="90" y1="138" x2="112" y2="135" stroke="#f5c96a" stroke-width="1" opacity=".5"/>
+        <!-- whiskers right -->
+        <line x1="150" y1="128" x2="128" y2="130" stroke="#f5c96a" stroke-width="1" opacity=".7"/>
+        <line x1="152" y1="133" x2="128" y2="132" stroke="#f5c96a" stroke-width="1" opacity=".7"/>
+        <line x1="150" y1="138" x2="128" y2="135" stroke="#f5c96a" stroke-width="1" opacity=".5"/>
+        <!-- Go gopher-style badge on chest -->
+        <rect x="102" y="198" width="36" height="22" rx="5" fill="#1e2335" opacity=".9"/>
+        <text x="120" y="213" text-anchor="middle" fill="#e8a930" font-family="monospace" font-size="10" font-weight="bold">go gui</text>
+        <!-- feet -->
+        <ellipse cx="100" cy="258" rx="18" ry="10" fill="#c47c0a"/>
+        <ellipse cx="140" cy="258" rx="18" ry="10" fill="#c47c0a"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="ticker">
+    <span class="ticker-item"><span>20+</span> Widgets <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>OpenGL</span> Renderer <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>state.Signal[T]</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Hot Reload</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Spring</span> Animations <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>RichText</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>ModalManager</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>EventBus</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Zero</span> Runtime Deps <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Undo/Redo</span> History <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Splitter</span> Layout <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>X11</span> Native <span class="ticker-sep">·</span></span>
+    <!-- duplicate for seamless loop -->
+    <span class="ticker-item"><span>20+</span> Widgets <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>OpenGL</span> Renderer <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>state.Signal[T]</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Hot Reload</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Spring</span> Animations <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>RichText</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>ModalManager</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>EventBus</span> <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Zero</span> Runtime Deps <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Undo/Redo</span> History <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>Splitter</span> Layout <span class="ticker-sep">·</span></span>
+    <span class="ticker-item"><span>X11</span> Native <span class="ticker-sep">·</span></span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     FEATURES
+══════════════════════════════════════════════ -->
+<section class="features" id="features">
+  <div class="wrap">
+    <div class="rv">
+      <div class="section-eyebrow">Why gui-go</div>
+      <h2 class="section-h">Everything wired in,<br><span style="color:var(--gold);font-style:italic">nothing bolted on</span></h2>
+      <p class="section-p">Designed as one cohesive system — the renderer, state layer, and widget toolkit were built together, not glued together.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-cell rv rv-d1">
+        <div class="feat-icon">⚡</div>
+        <h3>GPU Batch Renderer</h3>
+        <p>Single <code style="font-family:var(--mono);font-size:.9em;color:var(--teal)">glDrawElements</code> per frame. Quads, glyphs, SDF circles, gradients — all in one VAO. 12 floats per vertex, 65536 vertex capacity before auto-flush.</p>
+        <span class="feat-tag">render/gl</span>
+      </div>
+      <div class="feat-cell rv rv-d2">
+        <div class="feat-icon">🔁</div>
+        <h3>Reactive Signals</h3>
+        <p>Fine-grained <ic>Signal[T]</ic>, <ic>Computed[T]</ic>, <ic>Watch</ic> effects, and <ic>Store[S]</ic> — thread-safe, generic, equality-checked. Inspired by SolidJS but idiomatically Go.</p>
+        <span class="feat-tag">state.*</span>
+      </div>
+      <div class="feat-cell rv rv-d3">
+        <div class="feat-icon">🎞</div>
+        <h3>Animation Engine</h3>
+        <p>Per-component <ic>AnimationController</ic> with easing curves, spring physics, stagger support. Animations are driven by the <ic>Tick(delta)</ic> loop — no goroutines needed.</p>
+        <span class="feat-tag">animation.*</span>
+      </div>
+      <div class="feat-cell rv rv-d1">
+        <div class="feat-icon">🎨</div>
+        <h3>Central Theme</h3>
+        <p>One call to <ic>theme.Set(t)</ic> re-skins every widget. Token system covers colors, typography, radii, spacing. Dark and light palettes built in.</p>
+        <span class="feat-tag">theme.Current()</span>
+      </div>
+      <div class="feat-cell rv rv-d2">
+        <div class="feat-icon">📐</div>
+        <h3>Composable Layouts</h3>
+        <p>Stack (H/V), Splitter, ScrollView, FixedPosition, ClearRect — compose any layout at draw time without a layout engine or constraint system.</p>
+        <span class="feat-tag">ui.Stack / Splitter</span>
+      </div>
+      <div class="feat-cell rv rv-d3">
+        <div class="feat-icon">🛠</div>
+        <h3>Dev Tools</h3>
+        <p>LayoutDebugger (F1 overlay), FPSOverlay, EventLogger, HotReloader, Inspector — all behind <ic>//go:build debug</ic>. Zero production overhead.</p>
+        <span class="feat-tag">//go:build debug</span>
+      </div>
+      <div class="feat-cell rv rv-d1">
+        <div class="feat-icon">📝</div>
+        <h3>Rich Text</h3>
+        <p>Builder-API widget with 10 span types: plain, bold, italic, code, underline, strikethrough, links, colored, custom. Word-wraps, clips, supports ellipsis.</p>
+        <span class="feat-tag">ui.RichText</span>
+      </div>
+      <div class="feat-cell rv rv-d2">
+        <div class="feat-icon">↩</div>
+        <h3>Undo / Redo History</h3>
+        <p>Generic <ic>History[T]</ic> wraps any Signal with a bounded push/undo/redo stack. The counter demo wires it to arrow keys and Ctrl+Z in &lt;20 lines.</p>
+        <span class="feat-tag">state.History[T]</span>
+      </div>
+      <div class="feat-cell rv rv-d3">
+        <div class="feat-icon">🌐</div>
+        <h3>Fullstack Example</h3>
+        <p>Complete TaskFlow app: Go REST API + JWT auth + GUI client. Workspaces, projects, Kanban tasks, comments — all on stdlib <ic>net/http</ic>.</p>
+        <span class="feat-tag">examples/fullstack</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     SHOWCASE
+══════════════════════════════════════════════ -->
+<section class="showcase" id="showcase">
+  <div class="wrap">
+    <div class="rv">
+      <div class="section-eyebrow">Examples</div>
+      <h2 class="section-h">Real apps,<br><span style="color:var(--gold);font-style:italic">real code</span></h2>
+      <p class="section-p">Three production-quality examples ship in the repo. Each one wires the full stack end-to-end.</p>
+    </div>
+    <div class="show-grid">
+      <!-- counter -->
+      <div class="show-card rv rv-d1">
+        <div class="show-preview" style="background:linear-gradient(135deg,#111420,#0c0e15)">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="font-family:var(--mono);font-size:52px;font-weight:700;color:var(--gold);line-height:1">50</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="background:rgba(143,212,75,.15);border:1px solid var(--lime);border-radius:6px;padding:5px 14px;font-size:13px;font-weight:700;color:var(--lime);font-family:var(--mono)">+</div>
+              <div style="background:rgba(232,93,93,.15);border:1px solid var(--red);border-radius:6px;padding:5px 14px;font-size:13px;font-weight:700;color:var(--red);font-family:var(--mono)">−</div>
+            </div>
+          </div>
+        </div>
+        <div class="show-body">
+          <h3>Counter App</h3>
+          <p>Hot-reload + LayoutDebugger + FPS overlay + full undo/redo history. The canonical dev-tools demo.</p>
+          <span class="show-tag">examples/hot-reload</span>
+        </div>
+      </div>
+      <!-- finance -->
+      <div class="show-card rv rv-d2">
+        <div class="show-preview" style="background:linear-gradient(135deg,#0d1526,#0c0e15)">
+          <div style="display:flex;flex-direction:column;gap:6px;width:170px">
+            <div style="height:7px;border-radius:4px;background:linear-gradient(90deg,var(--gold),transparent);width:82%;box-shadow:0 0 8px var(--gold-glow)"></div>
+            <div style="height:7px;border-radius:4px;background:linear-gradient(90deg,var(--teal),transparent);width:58%"></div>
+            <div style="height:7px;border-radius:4px;background:linear-gradient(90deg,var(--red),transparent);width:91%"></div>
+            <div style="height:7px;border-radius:4px;background:linear-gradient(90deg,var(--lime),transparent);width:44%"></div>
+            <div style="height:7px;border-radius:4px;background:linear-gradient(90deg,var(--sky),transparent);width:67%"></div>
+          </div>
+        </div>
+        <div class="show-body">
+          <h3>Finance Dashboard</h3>
+          <p>Bar charts, donut charts, budget trackers, animated card entrances, modal transaction dialogs.</p>
+          <span class="show-tag">examples/app</span>
+        </div>
+      </div>
+      <!-- taskflow -->
+      <div class="show-card rv rv-d3">
+        <div class="show-preview" style="background:linear-gradient(135deg,#0a1424,#0c0e15)">
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
+            <div style="display:flex;gap:6px">
+              <div style="background:var(--bg3);border:1px solid var(--line);border-radius:5px;padding:4px 10px;font-size:10px;font-family:var(--mono);color:var(--teal)">TODO</div>
+              <div style="background:var(--bg3);border:1px solid var(--line);border-radius:5px;padding:4px 10px;font-size:10px;font-family:var(--mono);color:var(--gold)">DOING</div>
+              <div style="background:var(--bg3);border:1px solid var(--line);border-radius:5px;padding:4px 10px;font-size:10px;font-family:var(--mono);color:var(--lime)">DONE</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">TaskFlow REST API</div>
+          </div>
+        </div>
+        <div class="show-body">
+          <h3>TaskFlow Fullstack</h3>
+          <p>GUI client + Go HTTP server. JWT auth, workspaces, projects, tasks, comments — full CRUD.</p>
+          <span class="show-tag">examples/fullstack</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     DOCS
+══════════════════════════════════════════════ -->
+<section id="docs" style="padding:80px 0 120px">
+  <div class="wrap">
+    <div class="docs-wrap">
+
+      <!-- Sidebar -->
+      <aside class="doc-sidebar">
+        <div class="dsec-head">Getting Started</div>
+        <div class="dlink on" onclick="show('overview')"><span class="dlink-dot"></span>Overview</div>
+        <div class="dlink" onclick="show('install')"><span class="dlink-dot"></span>Installation</div>
+        <div class="dlink" onclick="show('quickstart')"><span class="dlink-dot"></span>Quick Start</div>
+        <div class="dlink" onclick="show('arch')"><span class="dlink-dot"></span>Architecture</div>
+
+        <div class="dsec-head">Core Concepts</div>
+        <div class="dlink" onclick="show('component')"><span class="dlink-dot"></span>Component Interface</div>
+        <div class="dlink" onclick="show('canvas')"><span class="dlink-dot"></span>Canvas & Drawing</div>
+        <div class="dlink" onclick="show('events')"><span class="dlink-dot"></span>Event System</div>
+        <div class="dlink" onclick="show('theme')"><span class="dlink-dot"></span>Theming</div>
+
+        <div class="dsec-head">Widgets</div>
+        <div class="dlink" onclick="show('widgets')"><span class="dlink-dot"></span>All Widgets</div>
+        <div class="dlink" onclick="show('button')"><span class="dlink-dot"></span>Button</div>
+        <div class="dlink" onclick="show('textinput')"><span class="dlink-dot"></span>TextInput</div>
+        <div class="dlink" onclick="show('dropdown')"><span class="dlink-dot"></span>Dropdown</div>
+        <div class="dlink" onclick="show('richtext')"><span class="dlink-dot"></span>RichText</div>
+        <div class="dlink" onclick="show('layout')"><span class="dlink-dot"></span>Layout Widgets</div>
+        <div class="dlink" onclick="show('overlay')"><span class="dlink-dot"></span>Overlay Widgets</div>
+
+        <div class="dsec-head">State</div>
+        <div class="dlink" onclick="show('signal')"><span class="dlink-dot"></span>Signal & Store</div>
+        <div class="dlink" onclick="show('computed')"><span class="dlink-dot"></span>Computed & Watch</div>
+        <div class="dlink" onclick="show('history')"><span class="dlink-dot"></span>History (Undo/Redo)</div>
+        <div class="dlink" onclick="show('eventbus')"><span class="dlink-dot"></span>EventBus</div>
+
+        <div class="dsec-head">Animations</div>
+        <div class="dlink" onclick="show('animations')"><span class="dlink-dot"></span>Animation System</div>
+        <div class="dlink" onclick="show('easing')"><span class="dlink-dot"></span>Easing Curves</div>
+
+        <div class="dsec-head">Advanced</div>
+        <div class="dlink" onclick="show('renderer')"><span class="dlink-dot"></span>GL Renderer</div>
+        <div class="dlink" onclick="show('devtools')"><span class="dlink-dot"></span>Dev Tools</div>
+        <div class="dlink" onclick="show('platform')"><span class="dlink-dot"></span>Platform / X11</div>
+      </aside>
+
+      <!-- Content area — all panes -->
+      <main class="doc-content" id="docContent">
+
+<!-- ─── OVERVIEW ─── -->
+<div id="p-overview" class="doc-pane on">
+<h2>Overview</h2>
+<p><strong>gui-go</strong> is a native GUI framework written entirely in Go. It uses OpenGL for rendering (via CGo → X11 on Linux) and provides a complete widget toolkit, reactive state management, an animation engine, and built-in dev tools — all in one repository with zero external Go dependencies.</p>
+
+<div class="note note-info"><span class="note-ico">ℹ️</span><p>Every object on screen implements the four-method <ic>ui.Component</ic> interface. This tiny contract is how the entire framework composes — layouts wrap components, dev tools wrap components, screens navigate between components.</p></div>
+
+<h3>Package Map</h3>
+<table class="ptable">
+<thead><tr><th>Package</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td>goui</td><td>Root — NewWindow, main run loop</td></tr>
+<tr><td>ui</td><td>All 20+ widgets (Button, Input, Modal, Toast, Navbar, …)</td></tr>
+<tr><td>canvas</td><td>2-D drawing API: rect, circle, text, polygon, clip, gradient</td></tr>
+<tr><td>state</td><td>Signal[T], Computed[T], Store[S], History[T], EventBus</td></tr>
+<tr><td>animation</td><td>AnimationController, easing, spring physics</td></tr>
+<tr><td>theme</td><td>Color palette, typography scale, radius tokens</td></tr>
+<tr><td>render/gl</td><td>OpenGL batch renderer — Batch, VAO, VBO, shader</td></tr>
+<tr><td>platform</td><td>X11 CGo bindings — window lifecycle, events, pixmap</td></tr>
+<tr><td>devtools</td><td>LayoutDebugger, FPSOverlay, EventLogger, HotReloader, Inspector</td></tr>
+</tbody>
+</table>
+
+<h3>Design Philosophy</h3>
+<p>gui-go is <em>retained-mode</em>: every frame redraws the entire scene. There is no virtual-dom, no dirty-checking, and no widget tree reconciliation. Components accumulate draw calls into a GPU batch during their <ic>Draw</ic> method; at end-of-frame the batch is flushed in a single <code style="font-family:var(--mono);color:var(--teal)">glDrawElements</code> call. This keeps the mental model simple: your code runs top-to-bottom, every frame.</p>
+</div>
+
+<!-- ─── INSTALL ─── -->
+<div id="p-install" class="doc-pane">
+<h2>Installation</h2>
+<p>Requires Go 1.21+, a C compiler (GCC/Clang), and the X11 development headers.</p>
+
+<h3>Linux — Debian / Ubuntu</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">bash</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>sudo apt-get install -y libx11-dev libgl1-mesa-dev gcc
+
+go get github.com/achiket123/gui-go</pre></div>
+
+<h3>Arch Linux / Manjaro</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">bash</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>sudo pacman -S libx11 mesa gcc
+
+go get github.com/achiket123/gui-go</pre></div>
+
+<div class="note note-warn"><span class="note-ico">⚠️</span><p>CGo is required. Ensure <ic>CGO_ENABLED=1</ic> and a working C compiler on your <ic>$PATH</ic> before building. Cross-compilation without a cross-C-compiler will fail.</p></div>
+
+<h3>Build Tags</h3>
+<p>Dev tools (<ic>devtools</ic> package) are compiled only with the <ic>debug</ic> build tag — they are completely absent from production binaries:</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">bash</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="c"># Production build (no devtools)</span>
+go build ./cmd/myapp
+
+<span class="c"># Debug build (LayoutDebugger, FPS, HotReload…)</span>
+go run -tags debug ./cmd/myapp</pre></div>
+</div>
+
+<!-- ─── QUICK START ─── -->
+<div id="p-quickstart" class="doc-pane">
+<h2>Quick Start</h2>
+<p>The minimal app: clear the canvas, add a reactive label and an increment button.</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="k">package</span> main
+
+<span class="k">import</span> <span class="p">(</span>
+  goui <span class="s">"github.com/achiket123/gui-go"</span>
+  <span class="s">"github.com/achiket123/gui-go/canvas"</span>
+  <span class="s">"github.com/achiket123/gui-go/state"</span>
+  <span class="s">"github.com/achiket123/gui-go/ui"</span>
+<span class="p">)</span>
+
+<span class="k">func</span> <span class="fn">main</span><span class="p">()</span> <span class="p">{</span>
+  count <span class="p">:=</span> state.<span class="fn">New</span><span class="p">(</span><span class="n">0</span><span class="p">)</span>
+  label <span class="p">:=</span> ui.<span class="fn">NewLabel</span><span class="p">(</span><span class="s">"Count: 0"</span><span class="p">)</span>
+
+  <span class="c">// React to signal changes</span>
+  count.<span class="fn">Subscribe</span><span class="p">(</span><span class="k">func</span><span class="p">(</span>v <span class="t">int</span><span class="p">) {</span>
+    label.Text <span class="p">=</span> fmt.<span class="fn">Sprintf</span><span class="p">(</span><span class="s">"Count: %d"</span><span class="p">,</span> v<span class="p">)</span>
+  <span class="p">})</span>
+
+  btn <span class="p">:=</span> ui.<span class="fn">NewButton</span><span class="p">(</span><span class="s">"+ Increment"</span><span class="p">,</span> <span class="k">func</span><span class="p">() {</span>
+    count.<span class="fn">Set</span><span class="p">(</span>count.<span class="fn">Get</span><span class="p">() +</span> <span class="n">1</span><span class="p">)</span>
+  <span class="p">})</span>
+
+  win <span class="p">:=</span> goui.<span class="fn">NewWindow</span><span class="p">(</span><span class="s">"Counter"</span><span class="p">,</span> <span class="n">480</span><span class="p">,</span> <span class="n">320</span><span class="p">)</span>
+  <span class="c">// ❶ Always clear first — prevents GPU frame residue</span>
+  win.<span class="fn">AddComponent</span><span class="p">(</span>ui.<span class="fn">NewClearRect</span><span class="p">(</span>canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#111420"</span><span class="p">)))</span>
+  <span class="c">// ❷ FixedPosition forces explicit pixel rect</span>
+  win.<span class="fn">AddComponent</span><span class="p">(</span>ui.<span class="fn">NewFixedPosition</span><span class="p">(</span>label<span class="p">,</span> <span class="n">40</span><span class="p">,</span> <span class="n">80</span><span class="p">,</span> <span class="n">320</span><span class="p">,</span> <span class="n">40</span><span class="p">))</span>
+  win.<span class="fn">AddComponent</span><span class="p">(</span>ui.<span class="fn">NewFixedPosition</span><span class="p">(</span>btn<span class="p">,</span>   <span class="n">40</span><span class="p">,</span> <span class="n">140</span><span class="p">,</span> <span class="n">140</span><span class="p">,</span> <span class="n">40</span><span class="p">))</span>
+  win.<span class="fn">Run</span><span class="p">()</span>
+<span class="p">}</span></pre></div>
+
+<div class="note note-tip"><span class="note-ico">💡</span><p>Always add a <ic>ClearRect</ic> as the very first component. The GPU does not clear between frames — without it you get ghosting from the previous frame.</p></div>
+</div>
+
+<!-- ─── ARCHITECTURE ─── -->
+<div id="p-arch" class="doc-pane">
+<h2>Architecture</h2>
+<p>gui-go is a strict layered system. Higher layers communicate through the <ic>ui.Component</ic> interface and the <ic>canvas.Canvas</ic> draw context only — they never import lower packages directly.</p>
+
+<div class="arch">
+  <div class="arch-layer"><div class="arch-box" style="background:rgba(232,169,48,.1);border:1px solid rgba(232,169,48,.3);color:var(--gold)">Your Application</div></div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-layer">
+    <div class="arch-box" style="background:rgba(47,207,181,.08);border:1px solid rgba(47,207,181,.25);color:var(--teal)">ui (Widgets)</div>
+    <div class="arch-box" style="background:rgba(47,207,181,.08);border:1px solid rgba(47,207,181,.25);color:var(--teal)">state</div>
+    <div class="arch-box" style="background:rgba(47,207,181,.08);border:1px solid rgba(47,207,181,.25);color:var(--teal)">animation</div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-layer">
+    <div class="arch-box" style="background:rgba(77,184,232,.08);border:1px solid rgba(77,184,232,.25);color:var(--sky)">canvas.Canvas</div>
+    <div class="arch-box" style="background:rgba(77,184,232,.08);border:1px solid rgba(77,184,232,.25);color:var(--sky)">theme</div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-layer"><div class="arch-box" style="background:rgba(143,212,75,.08);border:1px solid rgba(143,212,75,.25);color:var(--lime)">render/gl (Batch Renderer)</div></div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-layer">
+    <div class="arch-box" style="background:rgba(232,93,93,.08);border:1px solid rgba(232,93,93,.25);color:var(--red)">platform/x11 (CGo)</div>
+    <div class="arch-box" style="background:rgba(232,93,93,.08);border:1px solid rgba(232,93,93,.25);color:var(--red)">OpenGL ES</div>
+  </div>
+</div>
+
+<h3>Frame Loop</h3>
+<p>Each frame, the window does exactly five things in order:</p>
+<ol>
+<li><strong>Poll events</strong> — <ic>platform.NextEvent</ic> drains the X11 queue; each event dispatches to <ic>HandleEvent</ic> on the root component tree (first consumer wins).</li>
+<li><strong>Tick</strong> — <ic>Tick(delta)</ic> is called on every component. Animations advance here; <ic>delta</ic> is seconds since the previous frame.</li>
+<li><strong>Reset batch</strong> — the GL batch is cleared for the new frame.</li>
+<li><strong>Draw</strong> — <ic>Draw(c, x, y, w, h)</ic> is called on every component top-to-bottom. Components push quads/glyphs into the batch via <ic>canvas.Canvas</ic>.</li>
+<li><strong>Flush</strong> — one <ic>glDrawElements</ic> uploads and draws the entire batch. Back buffer swaps.</li>
+</ol>
+
+<h3>Vertex Layout</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">vertex layout — 12 floats = 48 bytes / vertex</span></div><pre><span class="c">// attr 0 — pos   (x, y)                  — float32 × 2</span>
+<span class="c">// attr 1 — uv    (u, v)                  — float32 × 2</span>
+<span class="c">// attr 2 — color (r, g, b, a)            — float32 × 4</span>
+<span class="c">// attr 3 — extra (mode, radius, sx, sy)  — float32 × 4</span>
+
+<span class="c">// Draw mode values (attr3.x):</span>
+<span class="k">const</span> <span class="p">(</span>
+  ModeColor    <span class="p">=</span> <span class="t">float32</span><span class="p">(</span><span class="n">0</span><span class="p">)</span>  <span class="c">// solid fill</span>
+  ModeTexture  <span class="p">=</span> <span class="t">float32</span><span class="p">(</span><span class="n">1</span><span class="p">)</span>  <span class="c">// texture sample</span>
+  ModeGlyph    <span class="p">=</span> <span class="t">float32</span><span class="p">(</span><span class="n">2</span><span class="p">)</span>  <span class="c">// alpha-only glyph</span>
+  ModeGradient <span class="p">=</span> <span class="t">float32</span><span class="p">(</span><span class="n">3</span><span class="p">)</span>  <span class="c">// linear gradient</span>
+<span class="p">)</span></pre></div>
+</div>
+
+<!-- ─── COMPONENT INTERFACE ─── -->
+<div id="p-component" class="doc-pane">
+<h2>Component Interface</h2>
+<p>Everything visible implements exactly four methods:</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="k">type</span> <span class="t">Component</span> <span class="k">interface</span> <span class="p">{</span>
+  <span class="c">// Bounds returns the axis-aligned rect from the last Draw call.</span>
+  <span class="c">// Used for hit-testing and by the LayoutDebugger overlay.</span>
+  <span class="fn">Bounds</span><span class="p">()</span> canvas.<span class="t">Rect</span>
+
+  <span class="c">// Tick advances internal state (animations, timers, blinking cursors).</span>
+  <span class="c">// delta is seconds elapsed since the previous frame (usually ~0.016).</span>
+  <span class="fn">Tick</span><span class="p">(</span>delta <span class="t">float64</span><span class="p">)</span>
+
+  <span class="c">// HandleEvent processes one input event.</span>
+  <span class="c">// Return true to consume the event — propagation stops.</span>
+  <span class="fn">HandleEvent</span><span class="p">(</span>e <span class="t">Event</span><span class="p">)</span> <span class="t">bool</span>
+
+  <span class="c">// Draw renders into canvas c at the given rect.</span>
+  <span class="c">// Called every frame. Store bounds here for hit-testing.</span>
+  <span class="fn">Draw</span><span class="p">(</span>c <span class="p">*</span>canvas.<span class="t">Canvas</span><span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> w<span class="p">,</span> h <span class="t">float32</span><span class="p">)</span>
+<span class="p">}</span></pre></div>
+
+<p>Implement these four methods and your type is a first-class gui-go component — wrap it in a layout, pass it to a ModalManager, register it with the LayoutDebugger, or navigate to it as a screen.</p>
+
+<h3>BaseScreen</h3>
+<p>For multi-screen apps, embed <ic>ui.BaseScreen</ic> to get a pre-wired <ic>Nav *Navigator</ic> field and a <ic>SetBounds</ic> helper:</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="k">type</span> <span class="t">DashScreen</span> <span class="k">struct</span> <span class="p">{</span>
+  ui.<span class="t">BaseScreen</span>       <span class="c">// embeds Nav *Navigator + SetBounds</span>
+  store  <span class="p">*</span><span class="t">AppStore</span>
+  toasts <span class="p">*</span>ui.<span class="t">ToastManager</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span>s <span class="p">*</span><span class="t">DashScreen</span><span class="p">)</span> <span class="fn">OnEnter</span><span class="p">(</span>nav <span class="p">*</span>ui.<span class="t">Navigator</span><span class="p">) {</span>
+  s.Nav <span class="p">=</span> nav
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="p">(</span>s <span class="p">*</span><span class="t">DashScreen</span><span class="p">)</span> <span class="fn">Draw</span><span class="p">(</span>c <span class="p">*</span>canvas.<span class="t">Canvas</span><span class="p">,</span> x<span class="p">,</span>y<span class="p">,</span>w<span class="p">,</span>h <span class="t">float32</span><span class="p">) {</span>
+  s.<span class="fn">SetBounds</span><span class="p">(</span>canvas.<span class="t">Rect</span><span class="p">{</span>X<span class="p">:</span>x<span class="p">,</span>Y<span class="p">:</span>y<span class="p">,</span>W<span class="p">:</span>w<span class="p">,</span>H<span class="p">:</span>h<span class="p">})</span>
+  <span class="c">// draw…</span>
+<span class="p">}</span>
+
+<span class="c">// Push to another screen from anywhere</span>
+s.Nav.<span class="fn">Push</span><span class="p">(</span><span class="fn">NewSettingsScreen</span><span class="p">())</span>
+s.Nav.<span class="fn">Pop</span><span class="p">()</span></pre></div>
+</div>
+
+<!-- ─── CANVAS ─── -->
+<div id="p-canvas" class="doc-pane">
+<h2>Canvas & Drawing</h2>
+<p><ic>canvas.Canvas</ic> is the single draw context passed to every component's <ic>Draw</ic> method. It translates higher-level calls into batch vertices for the GPU.</p>
+
+<h3>Primitives</h3>
+<table class="ptable">
+<thead><tr><th>Method</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>DrawRect(x,y,w,h, paint)</td><td>Axis-aligned filled or stroked rectangle</td></tr>
+<tr><td>DrawRoundedRect(x,y,w,h, r, paint)</td><td>Rect with uniform corner radius <ic>r</ic></td></tr>
+<tr><td>DrawCircle(cx,cy, r, paint)</td><td>Filled or stroked circle</td></tr>
+<tr><td>DrawLine(x0,y0,x1,y1, paint)</td><td>Anti-aliased line segment</td></tr>
+<tr><td>DrawPolygon(pts []Point, paint)</td><td>Filled polygon (used for donut chart segments)</td></tr>
+<tr><td>DrawText(x,y, text, style)</td><td>Left-baseline text at pixel coordinate</td></tr>
+<tr><td>DrawCenteredText(rect, text, style)</td><td>Text centered both axes within <ic>rect</ic></td></tr>
+<tr><td>DrawTextWrapped(x,y,w,h, text, style)</td><td>Word-wrapped + clipped text block</td></tr>
+<tr><td>MeasureText(text, style)</td><td>Returns <ic>{W, H float32}</ic></td></tr>
+<tr><td>WrapText(text, maxW, style, m)</td><td>Returns <ic>[]string</ic> of wrapped lines</td></tr>
+<tr><td>Save() / Restore()</td><td>Push / pop canvas state (clip, transform)</td></tr>
+<tr><td>ClipRect(x,y,w,h)</td><td>Restrict subsequent drawing to rect</td></tr>
+</tbody>
+</table>
+
+<h3>Paint Constructors</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="c">// Solid fill</span>
+canvas.<span class="fn">FillPaint</span><span class="p">(</span>canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#e8a930"</span><span class="p">))</span>
+
+<span class="c">// Stroke (color + line-width in pixels)</span>
+canvas.<span class="fn">StrokePaint</span><span class="p">(</span>canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#2fcfb5"</span><span class="p">),</span> <span class="n">1.5</span><span class="p">)</span>
+
+<span class="c">// Color construction</span>
+canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#rrggbb"</span><span class="p">)</span>               <span class="c">// parse 6-digit hex</span>
+col.<span class="fn">WithAlpha</span><span class="p">(</span><span class="n">0.5</span><span class="p">)</span>                   <span class="c">// copy with new alpha</span>
+canvas.<span class="t">Color</span><span class="p">{</span>R<span class="p">:</span><span class="n">1</span><span class="p">,</span>G<span class="p">:</span><span class="n">0.5</span><span class="p">,</span>B<span class="p">:</span><span class="n">0</span><span class="p">,</span>A<span class="p">:</span><span class="n">1</span><span class="p">}</span>       <span class="c">// RGBA (0–1)</span>
+
+<span class="c">// TextStyle</span>
+canvas.<span class="t">TextStyle</span><span class="p">{</span>
+  Color<span class="p">:</span>    canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#eef0f9"</span><span class="p">),</span>
+  Size<span class="p">:</span>     <span class="n">14</span><span class="p">,</span>        <span class="c">// points</span>
+  FontPath<span class="p">:</span> <span class="s">"fonts/Inter.ttf"</span><span class="p">,</span>
+  Bold<span class="p">:</span>     <span class="k">false</span><span class="p">,</span>
+  Italic<span class="p">:</span>   <span class="k">false</span><span class="p">,</span>
+<span class="p">}</span></pre></div>
+</div>
+
+<!-- ─── EVENTS ─── -->
+<div id="p-events" class="doc-pane">
+<h2>Event System</h2>
+<p>Events flow down the component tree in registration order. The first <ic>HandleEvent</ic> that returns <ic>true</ic> consumes the event — subsequent components don't see it.</p>
+
+<h3>Event Types</h3>
+<table class="ptable">
+<thead><tr><th>Constant</th><th>Key Fields</th><th>Triggered when</th></tr></thead>
+<tbody>
+<tr><td>EventMouseDown</td><td>X, Y, Button (1=left, 2=mid, 3=right)</td><td>Mouse button pressed</td></tr>
+<tr><td>EventMouseUp</td><td>X, Y, Button</td><td>Mouse button released</td></tr>
+<tr><td>EventMouseMove</td><td>X, Y</td><td>Pointer moved</td></tr>
+<tr><td>EventScroll</td><td>ScrollY</td><td>Scroll wheel / trackpad</td></tr>
+<tr><td>EventKeyDown</td><td>Key (string), Shift, Ctrl, Alt</td><td>Key pressed</td></tr>
+<tr><td>EventKeyUp</td><td>Key</td><td>Key released</td></tr>
+<tr><td>EventChar</td><td>Char (rune)</td><td>Printable character input</td></tr>
+<tr><td>EventFocus</td><td>—</td><td>Component gains input focus</td></tr>
+<tr><td>EventBlur</td><td>—</td><td>Component loses focus</td></tr>
+<tr><td>EventResize</td><td>Width, Height</td><td>Window resized</td></tr>
+</tbody>
+</table>
+
+<h3>Hit Testing Pattern</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="k">func</span> <span class="p">(</span>w <span class="p">*</span><span class="t">MyWidget</span><span class="p">)</span> <span class="fn">HandleEvent</span><span class="p">(</span>e ui.<span class="t">Event</span><span class="p">)</span> <span class="t">bool</span> <span class="p">{</span>
+  r <span class="p">:=</span> w.bounds
+  inside <span class="p">:=</span> e.X <span class="p">&gt;=</span> r.X <span class="p">&amp;&amp;</span> e.X <span class="p">&lt;=</span> r.X<span class="p">+</span>r.W <span class="p">&amp;&amp;</span>
+             e.Y <span class="p">&gt;=</span> r.Y <span class="p">&amp;&amp;</span> e.Y <span class="p">&lt;=</span> r.Y<span class="p">+</span>r.H
+
+  <span class="k">switch</span> e.Type <span class="p">{</span>
+  <span class="k">case</span> ui.EventMouseMove<span class="p">:</span>
+    w.hovered <span class="p">=</span> inside
+    <span class="k">return</span> inside   <span class="c">// consume only when inside</span>
+  <span class="k">case</span> ui.EventMouseDown<span class="p">:</span>
+    <span class="k">if</span> inside <span class="p">&amp;&amp;</span> e.Button <span class="p">==</span> <span class="n">1</span> <span class="p">{</span>
+      w.<span class="fn">onClick</span><span class="p">()</span>
+      <span class="k">return true</span>
+    <span class="p">}</span>
+  <span class="k">case</span> ui.EventKeyDown<span class="p">:</span>
+    <span class="k">switch</span> e.Key <span class="p">{</span>
+    <span class="k">case</span> <span class="s">"ArrowUp"</span><span class="p">,</span> <span class="s">"+"</span><span class="p">:</span>  w.<span class="fn">increment</span><span class="p">();</span> <span class="k">return true</span>
+    <span class="k">case</span> <span class="s">"ArrowDown"</span><span class="p">,</span> <span class="s">"-"</span><span class="p">:</span> w.<span class="fn">decrement</span><span class="p">();</span> <span class="k">return true</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">return false</span>
+<span class="p">}</span></pre></div>
+</div>
+
+<!-- ─── THEME ─── -->
+<div id="p-theme" class="doc-pane">
+<h2>Theming</h2>
+<p>All built-in widgets read from <ic>theme.Current()</ic>. Calling <ic>theme.Set(t)</ic> immediately re-skins every widget that uses the theme — no widget code needs to change.</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>th <span class="p">:=</span> theme.<span class="fn">Current</span><span class="p">()</span>
+
+<span class="c">// ── Color tokens ──────────────────────────────────</span>
+th.Colors.BgBase      <span class="c">// darkest background (window fill)</span>
+th.Colors.BgSurface   <span class="c">// card / panel surface</span>
+th.Colors.Accent      <span class="c">// primary brand / interactive color</span>
+th.Colors.AccentHover <span class="c">// lightened accent for hover states</span>
+th.Colors.Border      <span class="c">// subtle separators</span>
+th.Colors.Text        <span class="c">// primary text</span>
+th.Colors.Success     <span class="c">// green — confirmations, ToastSuccess</span>
+th.Colors.Warning     <span class="c">// yellow — ToastWarning</span>
+th.Colors.Error       <span class="c">// red — ToastError</span>
+th.Colors.Info        <span class="c">// blue — ToastInfo</span>
+
+<span class="c">// ── Typography tokens ─────────────────────────────</span>
+th.Type.H1      <span class="c">// canvas.TextStyle — headline 1</span>
+th.Type.H2
+th.Type.H3
+th.Type.Body    <span class="c">// default body text</span>
+th.Type.Code    <span class="c">// monospace</span>
+th.Type.Caption <span class="c">// small label</span>
+
+<span class="c">// ── Radius tokens ─────────────────────────────────</span>
+th.Radius.SM    <span class="c">// float32 e.g. 4</span>
+th.Radius.MD    <span class="c">// e.g. 8</span>
+th.Radius.LG    <span class="c">// e.g. 14</span></pre></div>
+
+<h3>Custom Theme</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>theme.<span class="fn">Set</span><span class="p">(&amp;</span>theme.<span class="t">Theme</span><span class="p">{</span>
+  Colors<span class="p">:</span> theme.<span class="t">ColorTokens</span><span class="p">{</span>
+    BgBase<span class="p">:</span>    canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#0c0e15"</span><span class="p">),</span>
+    BgSurface<span class="p">:</span> canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#1e2335"</span><span class="p">),</span>
+    Accent<span class="p">:</span>    canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#e8a930"</span><span class="p">),</span>
+    Border<span class="p">:</span>    canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#252c42"</span><span class="p">),</span>
+  <span class="p">},</span>
+  Radius<span class="p">:</span> theme.<span class="t">RadiusTokens</span><span class="p">{</span>SM<span class="p">:</span><span class="n">4</span><span class="p">,</span> MD<span class="p">:</span><span class="n">8</span><span class="p">,</span> LG<span class="p">:</span><span class="n">14</span><span class="p">},</span>
+<span class="p">})</span></pre></div>
+</div>
+
+<!-- ─── WIDGETS ─── -->
+<div id="p-widgets" class="doc-pane">
+<h2>All Widgets</h2>
+<p>Every widget lives in the <ic>ui</ic> package and implements <ic>ui.Component</ic>. Click a widget in the sidebar for its full API.</p>
+<div class="wcard-grid">
+  <div class="wcard"><h4>Button</h4><p>Clickable surface. Hover, press, disabled states. Configurable background, text, border-radius, <ic>OnClick</ic> callback.</p></div>
+  <div class="wcard"><h4>TextInput</h4><p>Single-line editable field. Cursor blink, backspace, paste, password mask, placeholder, <ic>OnChange</ic>, <ic>OnSubmit</ic>.</p></div>
+  <div class="wcard"><h4>Label</h4><p>Non-interactive text renderer. Wrapping, alignment, arbitrary <ic>TextStyle</ic>.</p></div>
+  <div class="wcard"><h4>Dropdown</h4><p>Single-select list. Collapsed row → popup on click. <ic>Selected int</ic>, <ic>OnChange</ic>, <ic>Placeholder</ic>.</p></div>
+  <div class="wcard"><h4>Checkbox</h4><p>Animated toggle. <ic>Checked bool</ic>, <ic>OnChange(bool)</ic>, themed rounded square + checkmark.</p></div>
+  <div class="wcard"><h4>Slider</h4><p>Horizontal drag. <ic>Min</ic>, <ic>Max</ic>, <ic>Value float32</ic>, <ic>OnChange(float32)</ic>. Click or drag track.</p></div>
+  <div class="wcard"><h4>ProgressBar</h4><p>Animated fill bar. <ic>Progress float32</ic> (0–1). Configurable track and fill colors.</p></div>
+  <div class="wcard"><h4>ScrollView</h4><p>Clip + scroll a child. Scrollbar on right. Mouse wheel, trackpad scroll, configurable speed.</p></div>
+  <div class="wcard"><h4>Stack</h4><p>H/V flow container. <ic>Direction</ic>, <ic>Gap</ic>, <ic>Padding EdgeInsets</ic>. Add children with <ic>AddChild</ic>.</p></div>
+  <div class="wcard"><h4>Splitter</h4><p>Two-pane resizable container. Drag divider. Accent highlight on hover. <ic>Split float32</ic> 0–1.</p></div>
+  <div class="wcard"><h4>Navbar</h4><p>Top bar. <ic>Title</ic>, <ic>Leading</ic> component, <ic>Trailing []Component</ic>. Height from <ic>NavbarStyle</ic>.</p></div>
+  <div class="wcard"><h4>Sidebar</h4><p>Vertical nav panel. Items with label + icon (Unicode). Active accent bar. <ic>OnClick</ic> per item.</p></div>
+  <div class="wcard"><h4>ToastManager</h4><p>Floating notifications. <ic>Show(msg, level, ttl)</ic>. Fade in/out. Info / Success / Warning / Error.</p></div>
+  <div class="wcard"><h4>ModalManager</h4><p>Stack-based overlay. <ic>Push(dialog)</ic> / <ic>Pop()</ic>. Dims background, blocks input below.</p></div>
+  <div class="wcard"><h4>Dialog</h4><p>Modal pane. Title + content + <ic>[]DialogAction</ic> buttons (primary / secondary).</p></div>
+  <div class="wcard"><h4>RichText</h4><p>Multi-span word-wrapped renderer. 10 span types. Links, code chips, alignment, ellipsis. Builder API.</p></div>
+  <div class="wcard"><h4>FixedPosition</h4><p>Forces child into explicit pixel rect, ignoring parent constraints. HUD / overlay placement.</p></div>
+  <div class="wcard"><h4>ClearRect</h4><p>Paints solid background every frame. Must be the first component to prevent GPU frame residue.</p></div>
+  <div class="wcard"><h4>Navigator</h4><p>Screen stack. <ic>Push / Pop</ic>. Calls <ic>OnEnter(nav)</ic> / <ic>OnLeave()</ic> on transitions.</p></div>
+</div>
+</div>
+
+<!-- ─── BUTTON ─── -->
+<div id="p-button" class="doc-pane">
+<h2>Button</h2>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="c">// Create with default theme style</span>
+btn <span class="p">:=</span> ui.<span class="fn">NewButton</span><span class="p">(</span><span class="s">"Save"</span><span class="p">,</span> <span class="k">func</span><span class="p">() {</span> save<span class="p">() })</span>
+
+<span class="c">// Customise</span>
+style <span class="p">:=</span> ui.<span class="fn">DefaultButtonStyle</span><span class="p">()</span>
+style.Background   <span class="p">=</span> canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#e8a930"</span><span class="p">)</span>
+style.HoverColor   <span class="p">=</span> canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#f5c96a"</span><span class="p">)</span>
+style.PressColor   <span class="p">=</span> canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#c47c0a"</span><span class="p">)</span>
+style.BorderRadius <span class="p">=</span> <span class="n">10</span>
+style.TextStyle    <span class="p">=</span> canvas.<span class="t">TextStyle</span><span class="p">{</span>
+  Color<span class="p">:</span> canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#0c0e15"</span><span class="p">),</span> Size<span class="p">:</span> <span class="n">14</span><span class="p">,</span> Bold<span class="p">:</span> <span class="k">true</span><span class="p">,</span>
+<span class="p">}</span>
+btn.Style    <span class="p">=</span> style
+btn.Disabled <span class="p">=</span> <span class="k">false</span>
+
+<span class="c">// Render at rect</span>
+btn.<span class="fn">Draw</span><span class="p">(</span>c<span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> <span class="n">120</span><span class="p">,</span> <span class="n">40</span><span class="p">)</span></pre></div>
+<table class="ptable"><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td>Style.Background</td><td>canvas.Color</td><td>Default fill</td></tr>
+<tr><td>Style.HoverColor</td><td>canvas.Color</td><td>Fill on hover</td></tr>
+<tr><td>Style.PressColor</td><td>canvas.Color</td><td>Fill on press</td></tr>
+<tr><td>Style.TextStyle</td><td>canvas.TextStyle</td><td>Label font</td></tr>
+<tr><td>Style.BorderRadius</td><td>float32</td><td>Corner radius px</td></tr>
+<tr><td>OnClick</td><td>func()</td><td>Called on release inside bounds</td></tr>
+<tr><td>Disabled</td><td>bool</td><td>Gray out + ignore events</td></tr>
+</tbody></table>
+</div>
+
+<!-- ─── TEXTINPUT ─── -->
+<div id="p-textinput" class="doc-pane">
+<h2>TextInput</h2>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>input <span class="p">:=</span> ui.<span class="fn">NewTextInput</span><span class="p">(</span><span class="s">"Placeholder…"</span><span class="p">)</span>
+input.OnChange <span class="p">=</span> <span class="k">func</span><span class="p">(</span>v <span class="t">string</span><span class="p">) {</span> fmt.<span class="fn">Println</span><span class="p">(</span>v<span class="p">) }</span>
+input.OnSubmit <span class="p">=</span> <span class="k">func</span><span class="p">() {</span> <span class="fn">submit</span><span class="p">(</span>input.Text<span class="p">) }</span>
+input.Password  <span class="p">=</span> <span class="k">true</span>   <span class="c">// mask with ●</span>
+input.MaxLength <span class="p">=</span> <span class="n">128</span>    <span class="c">// 0 = unlimited</span>
+
+val <span class="p">:=</span> input.Text        <span class="c">// read current value</span>
+focused <span class="p">:=</span> input.Focused <span class="c">// is it focused?</span></pre></div>
+<table class="ptable"><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td>Text</td><td>string</td><td>Current content (read/write)</td></tr>
+<tr><td>Placeholder</td><td>string</td><td>Shown when Text is empty</td></tr>
+<tr><td>OnChange</td><td>func(string)</td><td>Called on every keystroke</td></tr>
+<tr><td>OnSubmit</td><td>func()</td><td>Called when Enter pressed</td></tr>
+<tr><td>Password</td><td>bool</td><td>Masks characters</td></tr>
+<tr><td>MaxLength</td><td>int</td><td>Hard character limit (0=unlimited)</td></tr>
+<tr><td>Focused</td><td>bool</td><td>Read-only focus state</td></tr>
+</tbody></table>
+</div>
+
+<!-- ─── DROPDOWN ─── -->
+<div id="p-dropdown" class="doc-pane">
+<h2>Dropdown</h2>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>drop <span class="p">:=</span> ui.<span class="fn">NewDropdown</span><span class="p">(</span>
+  []<span class="t">string</span><span class="p">{</span><span class="s">"Expense"</span><span class="p">,</span> <span class="s">"Income"</span><span class="p">,</span> <span class="s">"Transfer"</span><span class="p">},</span>
+  ui.<span class="fn">DefaultDropdownStyle</span><span class="p">(),</span>
+<span class="p">)</span>
+drop.Placeholder <span class="p">=</span> <span class="s">"Select type…"</span>
+drop.OnChange    <span class="p">=</span> <span class="k">func</span><span class="p">(</span>idx <span class="t">int</span><span class="p">) {</span>
+  fmt.<span class="fn">Println</span><span class="p">(</span><span class="s">"selected:"</span><span class="p">,</span> drop.Items<span class="p">[</span>idx<span class="p">])</span>
+<span class="p">}</span>
+
+<span class="c">// Read selection (−1 if nothing selected)</span>
+<span class="k">if</span> drop.Selected <span class="p">&gt;=</span> <span class="n">0</span> <span class="p">{</span>
+  val <span class="p">:=</span> drop.Items<span class="p">[</span>drop.Selected<span class="p">]</span>
+<span class="p">}</span>
+
+<span class="c">// ⚠ Draw popup AFTER all other content to avoid clipping</span>
+drop.<span class="fn">DrawPopup</span><span class="p">(</span>c<span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> w<span class="p">,</span> h<span class="p">)</span></pre></div>
+<div class="note note-tip"><span class="note-ico">💡</span><p>Call <ic>drop.DrawPopup(c, x, y, w, h)</ic> at the very end of your screen's <ic>Draw</ic> method — after all other draws. This ensures the popup layer renders above every sibling without clipping.</p></div>
+</div>
+
+<!-- ─── RICHTEXT ─── -->
+<div id="p-richtext" class="doc-pane">
+<h2>RichText</h2>
+<p><ic>ui.RichText</ic> renders mixed-style text with automatic word-wrap, configurable alignment, line limits, and clickable links. It uses a builder API — each call appends a span and returns <ic>*RichText</ic> for chaining.</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>rt <span class="p">:=</span> ui.<span class="fn">NewRichText</span><span class="p">().</span>
+  <span class="fn">Text</span><span class="p">(</span><span class="s">"Hello "</span><span class="p">).</span>
+  <span class="fn">Bold</span><span class="p">(</span><span class="s">"world"</span><span class="p">).</span>
+  <span class="fn">Text</span><span class="p">(</span><span class="s">"! Visit "</span><span class="p">).</span>
+  <span class="fn">Link</span><span class="p">(</span><span class="s">"gui-go"</span><span class="p">,</span> <span class="s">"https://github.com/achiket123/gui-go"</span><span class="p">).</span>
+  <span class="fn">Newline</span><span class="p">().</span>
+  <span class="fn">Code</span><span class="p">(</span><span class="s">"go get github.com/achiket123/gui-go"</span><span class="p">).</span>
+  <span class="fn">Newline</span><span class="p">().</span>
+  <span class="fn">Italic</span><span class="p">(</span><span class="s">"Italic, "</span><span class="p">).</span>
+  <span class="fn">BoldItalic</span><span class="p">(</span><span class="s">"bold-italic"</span><span class="p">).</span>
+  <span class="fn">Strike</span><span class="p">(</span><span class="s">" strikethrough"</span><span class="p">).</span>
+  <span class="fn">Colored</span><span class="p">(</span><span class="s">" amber text"</span><span class="p">,</span> canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#e8a930"</span><span class="p">))</span>
+
+rt.OnLinkClick <span class="p">=</span> <span class="k">func</span><span class="p">(</span>url <span class="t">string</span><span class="p">) {</span> browser.<span class="fn">Open</span><span class="p">(</span>url<span class="p">) }</span>
+rt.Style.MaxLines <span class="p">=</span> <span class="n">10</span>
+rt.Style.Ellipsis <span class="p">=</span> <span class="k">true</span>
+rt.Style.Align    <span class="p">=</span> canvas.TextAlignCenter
+
+h <span class="p">:=</span> rt.<span class="fn">MeasureHeight</span><span class="p">(</span>c<span class="p">,</span> boxWidth<span class="p">)</span>
+rt.<span class="fn">Draw</span><span class="p">(</span>c<span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> boxWidth<span class="p">,</span> h<span class="p">)</span></pre></div>
+
+<h3>Span Kinds</h3>
+<table class="ptable"><thead><tr><th>Constant</th><th>Builder Method</th><th>Renders as</th></tr></thead><tbody>
+<tr><td>SpanText</td><td>.Text(s)</td><td>Normal body text</td></tr>
+<tr><td>SpanBold</td><td>.Bold(s)</td><td>Bold weight</td></tr>
+<tr><td>SpanItalic</td><td>.Italic(s)</td><td>Italic style</td></tr>
+<tr><td>SpanBoldItalic</td><td>.BoldItalic(s)</td><td>Bold + italic</td></tr>
+<tr><td>SpanCode</td><td>.Code(s)</td><td>Monospace + background chip</td></tr>
+<tr><td>SpanUnderline</td><td>.Underline(s)</td><td>Underline decoration</td></tr>
+<tr><td>SpanStrike</td><td>.Strike(s)</td><td>Strikethrough</td></tr>
+<tr><td>SpanLink</td><td>.Link(label, url)</td><td>Accent color, hover, clickable</td></tr>
+<tr><td>SpanColored</td><td>.Colored(s, color)</td><td>Custom color override</td></tr>
+<tr><td>SpanCustom</td><td>.Custom(s, style)</td><td>Fully custom TextStyle</td></tr>
+</tbody></table>
+</div>
+
+<!-- ─── LAYOUT ─── -->
+<div id="p-layout" class="doc-pane">
+<h2>Layout Widgets</h2>
+<h3>Stack</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>stack <span class="p">:=</span> ui.<span class="fn">NewStack</span><span class="p">(</span>ui.Vertical<span class="p">)</span>
+stack.Gap     <span class="p">=</span> <span class="n">12</span>
+stack.Padding <span class="p">=</span> ui.<span class="t">EdgeInsets</span><span class="p">{</span>Top<span class="p">:</span><span class="n">16</span><span class="p">,</span>Right<span class="p">:</span><span class="n">16</span><span class="p">,</span>Bottom<span class="p">:</span><span class="n">16</span><span class="p">,</span>Left<span class="p">:</span><span class="n">16</span><span class="p">}</span>
+stack.<span class="fn">AddChild</span><span class="p">(</span>header<span class="p">)</span>
+stack.<span class="fn">AddChild</span><span class="p">(</span>content<span class="p">)</span>
+stack.<span class="fn">AddChild</span><span class="p">(</span>footer<span class="p">)</span></pre></div>
+<h3>Splitter</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>sp <span class="p">:=</span> ui.<span class="fn">NewSplitter</span><span class="p">(</span>th<span class="p">)</span>
+sp.Vertical    <span class="p">=</span> <span class="k">true</span>  <span class="c">// left|right split</span>
+sp.Split       <span class="p">=</span> <span class="n">0.3</span>   <span class="c">// 30% left, 70% right</span>
+sp.DividerSize <span class="p">=</span> <span class="n">4</span>
+sp.First       <span class="p">=</span> sidebar
+sp.Second      <span class="p">=</span> content</pre></div>
+<h3>ScrollView</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>scroll <span class="p">:=</span> ui.<span class="fn">NewScrollView</span><span class="p">(</span>myList<span class="p">)</span>
+scroll.ScrollSpeed <span class="p">=</span> <span class="n">40</span> <span class="c">// pixels per wheel tick</span></pre></div>
+<h3>FixedPosition</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="c">// Pin child to exact pixel coords, ignoring parent layout</span>
+pin <span class="p">:=</span> ui.<span class="fn">NewFixedPosition</span><span class="p">(</span>child<span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> w<span class="p">,</span> h<span class="p">)</span></pre></div>
+</div>
+
+<!-- ─── OVERLAY ─── -->
+<div id="p-overlay" class="doc-pane">
+<h2>Overlay Widgets</h2>
+<h3>ToastManager</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>toasts <span class="p">:=</span> ui.<span class="fn">NewToastManager</span><span class="p">()</span>
+
+<span class="c">// Queue a notification</span>
+toasts.<span class="fn">Show</span><span class="p">(</span><span class="s">"Saved!"</span><span class="p">,</span>         ui.ToastSuccess<span class="p">,</span> <span class="n">3</span><span class="p">*</span>time.Second<span class="p">)</span>
+toasts.<span class="fn">Show</span><span class="p">(</span><span class="s">"Fill all fields"</span><span class="p">,</span> ui.ToastWarning<span class="p">,</span> <span class="n">2</span><span class="p">*</span>time.Second<span class="p">)</span>
+toasts.<span class="fn">Show</span><span class="p">(</span><span class="s">"Connection lost"</span><span class="p">,</span>  ui.ToastError<span class="p">,</span>   <span class="n">0</span><span class="p">)</span>  <span class="c">// 0 = default 3s</span>
+
+<span class="c">// Tick + Draw every frame (bottom-right corner)</span>
+toasts.<span class="fn">Tick</span><span class="p">(</span>delta<span class="p">)</span>
+toasts.<span class="fn">Draw</span><span class="p">(</span>c<span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> w<span class="p">,</span> h<span class="p">)</span></pre></div>
+
+<h3>ModalManager + Dialog</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>modal <span class="p">:=</span> ui.<span class="fn">NewModalManager</span><span class="p">()</span>
+
+dlg <span class="p">:=</span> ui.<span class="fn">NewDialog</span><span class="p">(</span>ui.<span class="t">DialogOptions</span><span class="p">{</span>
+  Title<span class="p">:</span> <span class="s">"Confirm Delete"</span><span class="p">,</span>
+  Actions<span class="p">:</span> []ui.<span class="t">DialogAction</span><span class="p">{</span>
+    <span class="p">{</span>Label<span class="p">:</span> <span class="s">"Delete"</span><span class="p">,</span> Primary<span class="p">:</span> <span class="k">true</span><span class="p">,</span>  OnClick<span class="p">:</span> doDelete<span class="p">},</span>
+    <span class="p">{</span>Label<span class="p">:</span> <span class="s">"Cancel"</span><span class="p">,</span> Primary<span class="p">:</span> <span class="k">false</span><span class="p">,</span> OnClick<span class="p">:</span> modal.Pop<span class="p">},</span>
+  <span class="p">},</span>
+<span class="p">})</span>
+modal.<span class="fn">Push</span><span class="p">(</span>dlg<span class="p">)</span>
+
+<span class="c">// In render loop</span>
+modal.<span class="fn">Tick</span><span class="p">(</span>delta<span class="p">)</span>
+modal.<span class="fn">HandleEvent</span><span class="p">(</span>e<span class="p">)</span>
+modal.<span class="fn">Draw</span><span class="p">(</span>c<span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> w<span class="p">,</span> h<span class="p">)</span></pre></div>
+
+<h3>Navbar</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>nav <span class="p">:=</span> ui.<span class="fn">NewNavbar</span><span class="p">(</span><span class="s">"My App"</span><span class="p">,</span> ui.<span class="fn">DefaultNavbarStyle</span><span class="p">())</span>
+nav.Leading  <span class="p">=</span> backBtn
+nav.Trailing <span class="p">=</span> []ui.<span class="t">Component</span><span class="p">{</span>settingsBtn<span class="p">,</span> avatar<span class="p">}</span>
+nav.<span class="fn">Draw</span><span class="p">(</span>c<span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> w<span class="p">,</span> h<span class="p">)</span>  <span class="c">// uses nav.Style.Height pixels from top</span></pre></div>
+
+<h3>Sidebar</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>sidebar <span class="p">:=</span> ui.<span class="fn">NewSidebar</span><span class="p">(</span>
+  []ui.<span class="t">SidebarItem</span><span class="p">{</span>
+    <span class="p">{</span>Label<span class="p">:</span> <span class="s">"Dashboard"</span><span class="p">,</span> Icon<span class="p">:</span> <span class="s">"📊"</span><span class="p">,</span> OnClick<span class="p">:</span> showDash<span class="p">},</span>
+    <span class="p">{</span>Label<span class="p">:</span> <span class="s">"Projects"</span><span class="p">,</span>  Icon<span class="p">:</span> <span class="s">"📁"</span><span class="p">,</span> OnClick<span class="p">:</span> showProjects<span class="p">},</span>
+    <span class="p">{</span>Label<span class="p">:</span> <span class="s">"Settings"</span><span class="p">,</span>  Icon<span class="p">:</span> <span class="s">"⚙️"</span><span class="p">,</span> OnClick<span class="p">:</span> showSettings<span class="p">},</span>
+  <span class="p">},</span>
+  ui.<span class="fn">DefaultSidebarStyle</span><span class="p">(),</span>
+<span class="p">)</span>
+sidebar.Active <span class="p">=</span> <span class="n">0</span></pre></div>
+</div>
+
+<!-- ─── SIGNAL ─── -->
+<div id="p-signal" class="doc-pane">
+<h2>Signal &amp; Store</h2>
+<h3>Signal[T]</h3>
+<p>Thread-safe generic reactive value. Notifies subscribers only when the value actually changes (equality check). Use <ic>NewSignalAny[T]</ic> for non-comparable types.</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="c">// Create</span>
+count <span class="p">:=</span> state.<span class="fn">New</span><span class="p">(</span><span class="n">0</span><span class="p">)</span>         <span class="c">// *Signal[int]</span>
+name  <span class="p">:=</span> state.<span class="fn">New</span><span class="p">(</span><span class="s">"Alice"</span><span class="p">)</span>  <span class="c">// *Signal[string]</span>
+
+<span class="c">// Read (thread-safe)</span>
+v <span class="p">:=</span> count.<span class="fn">Get</span><span class="p">()</span>
+
+<span class="c">// Write (notifies only if value changed)</span>
+count.<span class="fn">Set</span><span class="p">(</span><span class="n">42</span><span class="p">)</span>
+
+<span class="c">// Atomic transform</span>
+count.<span class="fn">Update</span><span class="p">(</span><span class="k">func</span><span class="p">(</span>n <span class="t">int</span><span class="p">)</span> <span class="t">int</span> <span class="p">{</span> <span class="k">return</span> n <span class="p">+</span> <span class="n">1</span> <span class="p">})</span>
+
+<span class="c">// Subscribe — returns unsubscribe function</span>
+stop <span class="p">:=</span> count.<span class="fn">Subscribe</span><span class="p">(</span><span class="k">func</span><span class="p">(</span>v <span class="t">int</span><span class="p">) {</span>
+  label.Text <span class="p">=</span> fmt.<span class="fn">Sprintf</span><span class="p">(</span><span class="s">"Count: %d"</span><span class="p">,</span> v<span class="p">)</span>
+<span class="p">})</span>
+<span class="k">defer</span> stop<span class="p">()</span>  <span class="c">// clean up</span>
+
+<span class="c">// OnChange alias</span>
+count.<span class="fn">OnChange</span><span class="p">(</span><span class="k">func</span><span class="p">(</span>v <span class="t">int</span><span class="p">) {</span> <span class="c">/* same as Subscribe */</span> <span class="p">})</span></pre></div>
+
+<h3>Store[S]</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="k">type</span> <span class="t">AppState</span> <span class="k">struct</span> <span class="p">{</span> Count <span class="t">int</span><span class="p">;</span> Name <span class="t">string</span> <span class="p">}</span>
+
+store <span class="p">:=</span> state.<span class="fn">NewStore</span><span class="p">(</span><span class="t">AppState</span><span class="p">{</span>Name<span class="p">:</span> <span class="s">"hello"</span><span class="p">})</span>
+
+<span class="c">// Mutate (runs under lock, then notifies)</span>
+store.<span class="fn">Mutate</span><span class="p">(</span><span class="k">func</span><span class="p">(</span>s <span class="p">*</span><span class="t">AppState</span><span class="p">) {</span>
+  s.Count<span class="p">++</span>
+  s.Name <span class="p">=</span> <span class="s">"world"</span>
+<span class="p">})</span>
+
+snap <span class="p">:=</span> store.<span class="fn">Get</span><span class="p">()</span>           <span class="c">// AppState value copy</span>
+
+store.<span class="fn">Subscribe</span><span class="p">(</span><span class="k">func</span><span class="p">(</span>s <span class="t">AppState</span><span class="p">) {</span>
+  fmt.<span class="fn">Println</span><span class="p">(</span><span class="s">"new state:"</span><span class="p">,</span> s<span class="p">)</span>
+<span class="p">})</span></pre></div>
+</div>
+
+<!-- ─── COMPUTED ─── -->
+<div id="p-computed" class="doc-pane">
+<h2>Computed &amp; Watch</h2>
+<h3>Computed[T]</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>first <span class="p">:=</span> state.<span class="fn">New</span><span class="p">(</span><span class="s">"Jane"</span><span class="p">)</span>
+last  <span class="p">:=</span> state.<span class="fn">New</span><span class="p">(</span><span class="s">"Doe"</span><span class="p">)</span>
+
+fullName <span class="p">:=</span> state.<span class="fn">Derive</span><span class="p">(</span><span class="k">func</span><span class="p">()</span> <span class="t">string</span> <span class="p">{</span>
+  <span class="k">return</span> first.<span class="fn">Get</span><span class="p">() +</span> <span class="s">" "</span> <span class="p">+</span> last.<span class="fn">Get</span><span class="p">()</span>
+<span class="p">},</span> first<span class="p">,</span> last<span class="p">)</span>  <span class="c">// deps: first, last</span>
+
+fmt.<span class="fn">Println</span><span class="p">(</span>fullName.<span class="fn">Get</span><span class="p">())</span>  <span class="c">// "Jane Doe"</span>
+first.<span class="fn">Set</span><span class="p">(</span><span class="s">"John"</span><span class="p">)</span>
+fmt.<span class="fn">Println</span><span class="p">(</span>fullName.<span class="fn">Get</span><span class="p">())</span>  <span class="c">// "John Doe" — lazy recompute</span></pre></div>
+<h3>Watch (Effect)</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="c">// Runs immediately, then re-runs whenever count changes</span>
+stop <span class="p">:=</span> state.<span class="fn">Watch</span><span class="p">(</span><span class="k">func</span><span class="p">() {</span>
+  title.<span class="fn">Set</span><span class="p">(</span>fmt.<span class="fn">Sprintf</span><span class="p">(</span><span class="s">"Count: %d"</span><span class="p">,</span> count.<span class="fn">Get</span><span class="p">()))</span>
+<span class="p">},</span> count<span class="p">)</span>
+<span class="k">defer</span> stop<span class="p">()</span></pre></div>
+</div>
+
+<!-- ─── HISTORY ─── -->
+<div id="p-history" class="doc-pane">
+<h2>History — Undo / Redo</h2>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>count   <span class="p">:=</span> state.<span class="fn">New</span><span class="p">(</span><span class="n">0</span><span class="p">)</span>
+history <span class="p">:=</span> state.<span class="fn">NewHistory</span><span class="p">(</span><span class="n">0</span><span class="p">,</span> <span class="n">50</span><span class="p">)</span>  <span class="c">// initial=0, maxDepth=50</span>
+
+<span class="c">// Record before mutating</span>
+history.<span class="fn">Push</span><span class="p">(</span>count.<span class="fn">Get</span><span class="p">() +</span> <span class="n">1</span><span class="p">)</span>
+count.<span class="fn">Set</span><span class="p">(</span>history.<span class="fn">Get</span><span class="p">())</span>
+
+<span class="c">// Undo (returns false if stack empty)</span>
+<span class="k">if</span> history.<span class="fn">Undo</span><span class="p">() {</span>
+  count.<span class="fn">Set</span><span class="p">(</span>history.<span class="fn">Get</span><span class="p">())</span>
+<span class="p">}</span>
+
+<span class="c">// Redo</span>
+<span class="k">if</span> history.<span class="fn">Redo</span><span class="p">() {</span>
+  count.<span class="fn">Set</span><span class="p">(</span>history.<span class="fn">Get</span><span class="p">())</span>
+<span class="p">}</span>
+
+<span class="c">// Access underlying Signal</span>
+history.<span class="fn">Signal</span><span class="p">().</span><span class="fn">Subscribe</span><span class="p">(</span><span class="k">func</span><span class="p">(</span>v <span class="t">int</span><span class="p">) {</span> <span class="c">/* … */</span> <span class="p">})</span></pre></div>
+<div class="note note-tip"><span class="note-ico">💡</span><p>The counter example wires undo to both the "Undo" button and keyboard shortcut Z / Ctrl+Z in the <ic>HandleEvent</ic> switch — full keyboard navigation with undo history in under 40 lines.</p></div>
+</div>
+
+<!-- ─── EVENTBUS ─── -->
+<div id="p-eventbus" class="doc-pane">
+<h2>EventBus</h2>
+<p>Topic-based, type-safe publish-subscribe bus for decoupled communication between unrelated components.</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>bus <span class="p">:=</span> state.<span class="fn">NewEventBus</span><span class="p">()</span>
+
+<span class="c">// Type-safe subscribe</span>
+sub <span class="p">:=</span> state.On[<span class="t">string</span>]<span class="p">(</span>bus<span class="p">,</span> <span class="s">"user:login"</span><span class="p">,</span> <span class="k">func</span><span class="p">(</span>user <span class="t">string</span><span class="p">) {</span>
+  fmt.<span class="fn">Println</span><span class="p">(</span><span class="s">"logged in:"</span><span class="p">,</span> user<span class="p">)</span>
+<span class="p">})</span>
+<span class="k">defer</span> sub.Cancel<span class="p">()</span>
+
+<span class="c">// Type-safe publish</span>
+state.<span class="fn">Publish</span>[<span class="t">string</span>]<span class="p">(</span>bus<span class="p">,</span> <span class="s">"user:login"</span><span class="p">,</span> <span class="s">"alice"</span><span class="p">)</span>
+
+<span class="c">// Raw (untyped) variants</span>
+bus.<span class="fn">RawPublish</span><span class="p">(</span><span class="s">"nav:back"</span><span class="p">,</span> <span class="k">nil</span><span class="p">)</span>
+bus.<span class="fn">RawSubscribe</span><span class="p">(</span><span class="s">"nav:back"</span><span class="p">,</span> <span class="k">func</span><span class="p">(</span><span class="t">any</span><span class="p">) {</span> <span class="c">/* … */</span> <span class="p">})</span></pre></div>
+</div>
+
+<!-- ─── ANIMATIONS ─── -->
+<div id="p-animations" class="doc-pane">
+<h2>Animation System</h2>
+<p>gui-go's animation system is <strong>tick-driven</strong>: no goroutines, no timers. Each component's <ic>Tick(delta)</ic> advances its controllers, and <ic>Draw</ic> reads the current value to influence rendering.</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="c">// Create a 600 ms controller</span>
+anim <span class="p">:=</span> animation.<span class="fn">NewController</span><span class="p">(</span><span class="n">600</span> <span class="p">*</span> time.Millisecond<span class="p">)</span>
+anim.Easing <span class="p">=</span> animation.EaseOutCubic
+
+<span class="c">// Control direction</span>
+anim.<span class="fn">Forward</span><span class="p">()</span>   <span class="c">// play 0→1</span>
+anim.<span class="fn">Backward</span><span class="p">()</span>  <span class="c">// play 1→0</span>
+anim.<span class="fn">Toggle</span><span class="p">()</span>    <span class="c">// flip direction</span>
+
+<span class="c">// In Tick(delta)</span>
+anim.<span class="fn">Tick</span><span class="p">(</span>delta<span class="p">)</span>
+
+<span class="c">// In Draw()</span>
+t <span class="p">:=</span> <span class="t">float32</span><span class="p">(</span>anim.<span class="fn">Value</span><span class="p">())</span>  <span class="c">// 0.0 – 1.0, eased</span>
+
+<span class="c">// Example — fade-in card</span>
+bg <span class="p">:=</span> canvas.<span class="fn">Hex</span><span class="p">(</span><span class="s">"#1e2335"</span><span class="p">)</span>
+bg.A <span class="p">=</span> t
+c.<span class="fn">DrawRoundedRect</span><span class="p">(</span>cx<span class="p">,</span> cy<span class="p">,</span> cw<span class="p">,</span> ch<span class="p">,</span> <span class="n">12</span><span class="p">,</span> canvas.<span class="fn">FillPaint</span><span class="p">(</span>bg<span class="p">))</span>
+
+<span class="c">// Example — grow bar chart</span>
+barH <span class="p">:=</span> maxH <span class="p">*</span> t
+c.<span class="fn">DrawRoundedRect</span><span class="p">(</span>bx<span class="p">,</span> y<span class="p">+</span>h<span class="p">-</span>barH<span class="p">,</span> bw<span class="p">,</span> barH<span class="p">,</span> <span class="n">3</span><span class="p">,</span> canvas.<span class="fn">FillPaint</span><span class="p">(</span>col<span class="p">))</span></pre></div>
+
+<h3>Re-trigger on Screen Enter</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="k">func</span> <span class="p">(</span>d <span class="p">*</span><span class="t">DashScreen</span><span class="p">)</span> <span class="fn">OnEnter</span><span class="p">(</span>nav <span class="p">*</span>ui.<span class="t">Navigator</span><span class="p">) {</span>
+  d.Nav <span class="p">=</span> nav
+  <span class="c">// Recreate — resets progress to 0 and plays forward</span>
+  d.barAnim <span class="p">=</span> animation.<span class="fn">NewController</span><span class="p">(</span><span class="n">1000</span> <span class="p">*</span> time.Millisecond<span class="p">)</span>
+  d.barAnim.<span class="fn">Forward</span><span class="p">()</span>
+<span class="p">}</span></pre></div>
+</div>
+
+<!-- ─── EASING ─── -->
+<div id="p-easing" class="doc-pane">
+<h2>Easing Curves</h2>
+<div class="ease-grid">
+  <div class="ease-card"><h5>Linear</h5><p>Constant speed</p><div class="ease-preview"><div class="ease-ball" id="eb-linear"></div></div></div>
+  <div class="ease-card"><h5>EaseIn</h5><p>Slow start, fast end</p><div class="ease-preview"><div class="ease-ball" id="eb-in"></div></div></div>
+  <div class="ease-card"><h5>EaseOut</h5><p>Fast start, slow end</p><div class="ease-preview"><div class="ease-ball" id="eb-out"></div></div></div>
+  <div class="ease-card"><h5>EaseInOut</h5><p>Smooth both ends</p><div class="ease-preview"><div class="ease-ball" id="eb-inout"></div></div></div>
+  <div class="ease-card"><h5>EaseOutCubic</h5><p>Cubic deceleration</p><div class="ease-preview"><div class="ease-ball" id="eb-outcubic"></div></div></div>
+  <div class="ease-card"><h5>EaseOutBounce</h5><p>Springy bounce at end</p><div class="ease-preview"><div class="ease-ball" id="eb-bounce"></div></div></div>
+  <div class="ease-card"><h5>EaseOutElastic</h5><p>Elastic overshoot</p><div class="ease-preview"><div class="ease-ball" id="eb-elastic"></div></div></div>
+  <div class="ease-card"><h5>EaseOutBack</h5><p>Slight overshoot</p><div class="ease-preview"><div class="ease-ball" id="eb-back"></div></div></div>
+  <div class="ease-card"><h5>Spring</h5><p>Physics-based spring</p><div class="ease-preview"><div class="ease-ball" id="eb-spring"></div></div></div>
+  <div class="ease-card"><h5>EaseInCubic</h5><p>Cubic acceleration</p><div class="ease-preview"><div class="ease-ball" id="eb-incubic"></div></div></div>
+  <div class="ease-card"><h5>Steps(n)</h5><p>Discrete n-steps</p><div class="ease-preview"><div class="ease-ball" id="eb-steps"></div></div></div>
+  <div class="ease-card"><h5>EaseInOutCubic</h5><p>Cubic in and out</p><div class="ease-preview"><div class="ease-ball" id="eb-inoutcubic"></div></div></div>
+</div>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>anim <span class="p">:=</span> animation.<span class="fn">NewController</span><span class="p">(</span><span class="n">400</span> <span class="p">*</span> time.Millisecond<span class="p">)</span>
+anim.Easing <span class="p">=</span> animation.EaseOutBounce
+
+<span class="c">// Spring (physics)</span>
+spring <span class="p">:=</span> animation.<span class="fn">NewSpring</span><span class="p">(</span>animation.<span class="t">SpringConfig</span><span class="p">{</span>
+  Stiffness<span class="p">:</span> <span class="n">260</span><span class="p">,</span>
+  Damping<span class="p">:</span>   <span class="n">20</span><span class="p">,</span>
+<span class="p">})</span>
+spring.<span class="fn">SetTarget</span><span class="p">(</span><span class="n">1.0</span><span class="p">)</span>
+spring.<span class="fn">Tick</span><span class="p">(</span>delta<span class="p">)</span>
+t <span class="p">:=</span> spring.<span class="fn">Value</span><span class="p">()</span></pre></div>
+</div>
+
+<!-- ─── RENDERER ─── -->
+<div id="p-renderer" class="doc-pane">
+<h2>GL Renderer</h2>
+<p>The <ic>render/gl</ic> package implements a deferred batch renderer. All canvas draw calls push quads into a <ic>Batch</ic>; at end-of-frame the batch is uploaded and drawn in one <ic>glDrawElements</ic>.</p>
+<table class="ptable"><thead><tr><th>Method</th><th>Description</th></tr></thead><tbody>
+<tr><td>PushQuad(x0,y0,x1,y1, uv, rgba, mode…)</td><td>Add a textured/colored quad (4 verts, 2 triangles)</td></tr>
+<tr><td>PushTriangle(x0,y0, x1,y1, x2,y2, rgba, mode)</td><td>Bare triangle — polygon fans, custom shapes</td></tr>
+<tr><td>NeedsFlush()</td><td>Returns true when approaching 65536 vertex limit</td></tr>
+<tr><td>Flush()</td><td>Upload to GPU + glDrawElements — resets batch</td></tr>
+<tr><td>Reset()</td><td>Clear without uploading (start of new frame)</td></tr>
+<tr><td>Destroy()</td><td>Free VAO, VBO, EBO GPU resources</td></tr>
+</tbody></table>
+<div class="note note-info"><span class="note-ico">ℹ️</span><p>Max capacity is 65 536 vertices (uint16 index range). The renderer auto-flushes mid-frame when <ic>NeedsFlush()</ic> is true, so UIs with thousands of primitives still render correctly without manual batching.</p></div>
+</div>
+
+<!-- ─── DEVTOOLS ─── -->
+<div id="p-devtools" class="doc-pane">
+<h2>Dev Tools</h2>
+<p>All tools are in the <ic>devtools</ic> package and compiled only with <ic>//go:build debug</ic>. Zero production overhead.</p>
+<h3>LayoutDebugger</h3>
+<p>Wraps a root component and overlays colored dashed borders around every registered component's <ic>Bounds()</ic>. Toggle with <strong>F1</strong>.</p>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>dbg <span class="p">:=</span> devtools.<span class="fn">NewLayoutDebugger</span><span class="p">(</span>rootWidget<span class="p">)</span>
+dbg.<span class="fn">Register</span><span class="p">(</span>counterWidget<span class="p">)</span>
+dbg.<span class="fn">Register</span><span class="p">(</span>buttonBar<span class="p">)</span>
+<span class="c">// Press F1 in app to toggle the overlay on/off</span></pre></div>
+<h3>FPSOverlay</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>fps <span class="p">:=</span> devtools.<span class="fn">NewFPSOverlay</span><span class="p">()</span>
+fps.Corner  <span class="p">=</span> <span class="n">3</span>    <span class="c">// 0=TL 1=TR 2=BL 3=BR</span>
+fps.BgAlpha <span class="p">=</span> <span class="n">0.7</span>
+fps.<span class="fn">RecordFrame</span><span class="p">(</span>delta<span class="p">)</span>  <span class="c">// in render loop</span>
+fps.<span class="fn">Draw</span><span class="p">(</span>c<span class="p">,</span> x<span class="p">,</span> y<span class="p">,</span> w<span class="p">,</span> h<span class="p">)</span></pre></div>
+<h3>HotReloader</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre>rl <span class="p">:=</span> devtools.<span class="fn">NewHotReloader</span><span class="p">(</span><span class="s">"."</span><span class="p">,</span> <span class="k">func</span><span class="p">() {</span>
+  log.<span class="fn">Println</span><span class="p">(</span><span class="s">"restarting…"</span><span class="p">)</span>
+  os.<span class="fn">Exit</span><span class="p">(</span><span class="n">0</span><span class="p">)</span>
+<span class="p">})</span>
+rl.BuildCmd <span class="p">=</span> []<span class="t">string</span><span class="p">{</span><span class="s">"go"</span><span class="p">,</span><span class="s">"build"</span><span class="p">,</span><span class="s">"-tags"</span><span class="p">,</span><span class="s">"debug"</span><span class="p">,</span><span class="s">"-o"</span><span class="p">,</span>os.Args[<span class="n">0</span>]<span class="p">,</span><span class="s">"."</span><span class="p">}</span>
+<span class="k">go</span> rl.<span class="fn">Watch</span><span class="p">()</span>  <span class="c">// non-blocking goroutine</span></pre></div>
+<h3>EventLogger</h3>
+<div class="cb"><div class="cb-head"><div class="cb-dots"><div class="cb-dot cb-dot-r"></div><div class="cb-dot cb-dot-y"></div><div class="cb-dot cb-dot-g"></div></div><span class="cb-lang">go</span><button class="cb-copy" onclick="cp(this)">Copy</button></div><pre><span class="c">// Wrap any component — logs all events to stderr</span>
+logged <span class="p">:=</span> devtools.<span class="fn">NewEventLogger</span><span class="p">(</span>myWidget<span class="p">,</span> <span class="s">"label"</span><span class="p">)</span>
+<span class="c">// Use 'logged' in place of 'myWidget' in your component tree</span></pre></div>
+</div>
+
+<!-- ─── PLATFORM ─── -->
+<div id="p-platform" class="doc-pane">
+<h2>Platform / X11</h2>
+<p>The <ic>platform</ic> package provides thin CGo wrappers over Xlib. Normally you never call these directly — <ic>goui.NewWindow</ic> handles everything. They're useful for advanced embedding or custom window management.</p>
+<table class="ptable"><thead><tr><th>Function</th><th>Description</th></tr></thead><tbody>
+<tr><td>OpenDisplay() / CloseDisplay()</td><td>Connect / disconnect from X server</td></tr>
+<tr><td>CreateSimpleWindow(…)</td><td>Create window, returns X11 window ID</td></tr>
+<tr><td>MapWindow(dpy, win)</td><td>Make window visible on screen</td></tr>
+<tr><td>SelectInput(dpy, win, mask)</td><td>Register event mask (KeyPress, ButtonPress, …)</td></tr>
+<tr><td>NextEvent(dpy)</td><td>Dequeue next event → decoded XEventData struct</td></tr>
+<tr><td>CreatePixmap(…)</td><td>Offscreen buffer for double-buffering</td></tr>
+<tr><td>CreateXImage(…)</td><td>BGRX XImage backed by a Go byte slice</td></tr>
+<tr><td>PutXImage(…)</td><td>Blit pixel buffer to a drawable</td></tr>
+<tr><td>Flush(dpy) / Sync(dpy)</td><td>Flush / await X server command queue</td></tr>
+<tr><td>InternAtom(dpy, name, …)</td><td>Look up X11 atom ID by name</td></tr>
+<tr><td>SetWMProtocols(dpy, win, atoms)</td><td>Register WM protocols e.g. WM_DELETE_WINDOW</td></tr>
+</tbody></table>
+</div>
+
+      </main><!-- end doc-content -->
+    </div><!-- end docs-wrap -->
+  </div><!-- end wrap -->
+</section>
+
+<!-- ══════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-inner">
+      <div class="foot-brand">
+        <div class="foot-brand-row">
+          <svg width="28" height="28" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="9" fill="#1e2335"/><path d="M7 26 L11 14 L15 19 L19 10 L23 19 L27 14 L31 26 Z" fill="#e8a930" opacity=".9"/><circle cx="19" cy="22" r="7" fill="#e8a930"/><circle cx="19" cy="22" r="5" fill="#c47c0a"/><circle cx="17" cy="21" r="1.5" fill="#fff" opacity=".9"/><circle cx="21" cy="21" r="1.5" fill="#fff" opacity=".9"/></svg>
+          <span class="foot-brand-name">gui-go</span>
+        </div>
+        <p>Native OpenGL GUI framework for Go. Zero runtime dependencies.</p>
+      </div>
+      <div class="foot-links">
+        <a href="https://github.com/achiket123/gui-go">GitHub</a>
+        <a href="#docs" onclick="show('overview')">Documentation</a>
+        <a href="#showcase">Examples</a>
+        <a href="#features">Features</a>
+      </div>
+    </div>
+    <div class="foot-copy">
+      <span>MIT License · gui-go</span>
+      <span>Built with 🦊 and Go</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+/* ── Custom cursor ───────────────────────────── */
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+(function loop(){
+  cur.style.left = mx+'px'; cur.style.top = my+'px';
+  rx += (mx-rx)*.14; ry += (my-ry)*.14;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(loop);
+})();
+
+/* ── Nav scroll ──────────────────────────────── */
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', ()=>{ nav.classList.toggle('stuck', scrollY>30); });
+
+/* ── Reveal on scroll ────────────────────────── */
+const rv = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{threshold:.12});
+document.querySelectorAll('.rv').forEach(el=>rv.observe(el));
+
+/* ── Docs switching ──────────────────────────── */
+function show(id){
+  document.querySelectorAll('.doc-pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.dlink').forEach(l=>l.classList.remove('on'));
+  const pane = document.getElementById('p-'+id);
+  if(pane){ pane.classList.add('on'); }
+  document.querySelectorAll('.dlink').forEach(l=>{
+    const oc = l.getAttribute('onclick')||'';
+    if(oc.includes("'"+id+"'")) l.classList.add('on');
+  });
+  const docsEl = document.getElementById('docs');
+  if(docsEl && window.scrollY > docsEl.offsetTop - 100){
+    docsEl.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+}
+show('overview');
+
+/* ── Copy code ───────────────────────────────── */
+function cp(btn){
+  const pre = btn.closest('.cb').querySelector('pre');
+  const txt = pre.innerText;
+  navigator.clipboard.writeText(txt).then(()=>{
+    btn.textContent='✓ Copied'; btn.style.color='var(--teal)';
+    setTimeout(()=>{ btn.textContent='Copy'; btn.style.color=''; }, 2000);
+  });
+}
+
+/* ── Draggable float cards ───────────────────── */
+document.querySelectorAll('.float-card').forEach(card=>{
+  let dx=0,dy=0,startX=0,startY=0,dragging=false;
+  card.addEventListener('mousedown',e=>{
+    if(e.target.tagName==='BUTTON') return;
+    dragging=true;
+    card.classList.add('dragging');
+    startX=e.clientX-dx; startY=e.clientY-dy;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    dx=e.clientX-startX; dy=e.clientY-startY;
+    card.style.transform=`translate(${dx}px,${dy}px)`;
+  });
+  document.addEventListener('mouseup',()=>{
+    dragging=false; card.classList.remove('dragging');
+  });
+});
+
+/* ── Signal counter ──────────────────────────── */
+let sigValue = 7;
+function sigChange(d){
+  sigValue = Math.max(-99, Math.min(99, sigValue+d));
+  document.getElementById('sigVal').textContent = sigValue;
+}
+
+/* ── Demo button feedback ────────────────────── */
+const demoColors = ['var(--gold)','var(--teal)','var(--lime)','var(--sky)'];
+let demoIdx = 0;
+function demoClick(){
+  const btn = document.getElementById('demoBtn');
+  demoIdx = (demoIdx+1) % demoColors.length;
+  btn.style.background = demoColors[demoIdx];
+  btn.textContent = ['Clicked!','Again!','Keep going!','One more!'][demoIdx];
+}
+
+/* ── FPS bar animation ───────────────────────── */
+const fpsBars = document.getElementById('fpsBars');
+const fpsNum  = document.getElementById('fpsNum');
+const heights = [24,28,20,32,18,26,30,22,28,16,32,24,20,28,18];
+let fpsIdx = 0;
+heights.forEach(h=>{
+  const b = document.createElement('div');
+  b.className='fps-bar';
+  b.style.height=h+'px';
+  b.style.opacity=0.25+Math.random()*0.5;
+  fpsBars.appendChild(b);
+});
+setInterval(()=>{
+  const bars = fpsBars.querySelectorAll('.fps-bar');
+  const h = heights[fpsIdx % heights.length];
+  bars[fpsIdx % bars.length].style.height = (12+Math.random()*24)+'px';
+  bars[fpsIdx % bars.length].style.opacity = 0.3 + Math.random()*0.6;
+  const fps = 55 + Math.floor(Math.random()*8);
+  fpsNum.textContent = fps;
+  fpsIdx++;
+}, 120);
+
+/* ── Easing preview balls ────────────────────── */
+function easeInOut(t){ return t<.5? 2*t*t : -1+(4-2*t)*t; }
+function easeOut(t){ return 1-(1-t)*(1-t); }
+function easeIn(t){ return t*t; }
+function easeOutCubic(t){ return 1-Math.pow(1-t,3); }
+function easeOutBounce(t){
+  const n1=7.5625,d1=2.75;
+  if(t<1/d1) return n1*t*t;
+  if(t<2/d1) return n1*(t-=1.5/d1)*t+0.75;
+  if(t<2.5/d1) return n1*(t-=2.25/d1)*t+0.9375;
+  return n1*(t-=2.625/d1)*t+0.984375;
+}
+function easeOutElastic(t){
+  const c4=(2*Math.PI)/3;
+  return t===0?0:t===1?1:Math.pow(2,-10*t)*Math.sin((t*10-0.75)*c4)+1;
+}
+function easeOutBack(t){ const c1=1.70158,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); }
+function easeInCubic(t){ return t*t*t; }
+function easeInOutCubic(t){ return t<.5?4*t*t*t:(1-Math.pow(-2*t+2,3)/2); }
+function spring(t,s=260,d=20){ const w=Math.sqrt(s); return 1-Math.exp(-d/(2)*t)*Math.cos(w*t); }
+function steps(t,n=6){ return Math.floor(t*n)/n; }
+
+const easings = {
+  'linear': t=>t, 'in': easeIn, 'out': easeOut, 'inout': easeInOut,
+  'outcubic': easeOutCubic, 'bounce': easeOutBounce, 'elastic': easeOutElastic,
+  'back': easeOutBack, 'spring': t=>Math.min(1,spring(t*2)),
+  'incubic': easeInCubic, 'steps': steps, 'inoutcubic': easeInOutCubic,
+};
+let easingT = 0, easingDir = 1;
+function animateEasings(){
+  easingT += 0.008 * easingDir;
+  if(easingT >= 1){ easingT=1; setTimeout(()=>{ easingDir=-1; },400); }
+  if(easingT <= 0){ easingT=0; setTimeout(()=>{ easingDir=1; },400); }
+  Object.entries(easings).forEach(([key,fn])=>{
+    const el = document.getElementById('eb-'+key);
+    if(!el) return;
+    const parent = el.parentElement;
+    const pw = parent.offsetWidth - 26;
+    const v = Math.max(0, Math.min(1, fn(Math.max(0,Math.min(1,easingT)))));
+    el.style.left = (8 + v*pw)+'px';
+  });
+  requestAnimationFrame(animateEasings);
+}
+animateEasings();
+
+/* ── Mascot blink ────────────────────────────── */
+</script>
+</body>
+</html>

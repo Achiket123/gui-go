@@ -1,7 +1,7 @@
 package goui
 
 import (
-	"github.com/achiket/gui-go/platform"
+	"github.com/achiket123/gui-go/platform"
 )
 
 // Point is a 2D integer coordinate used for polygon drawing.

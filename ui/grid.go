@@ -20,7 +20,7 @@
 //	grid.Place(footer,  0, 2, 3, 1) // col 0, row 2, full-width
 package ui
 
-import "github.com/achiket/gui-go/canvas"
+import "github.com/achiket123/gui-go/canvas"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Track sizing

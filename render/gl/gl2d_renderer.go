@@ -5,7 +5,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/achiket/gui-go/render"
+	"github.com/achiket123/gui-go/render"
 )
 
 // Shape vertex shader — transforms pixel-space coords to NDC using a projection matrix.

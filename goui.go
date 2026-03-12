@@ -14,7 +14,7 @@
 //	w.Show() // blocks until window closes
 package goui
 
-import "github.com/achiket/gui-go/animation"
+import "github.com/achiket123/gui-go/animation"
 
 // Animatable is an alias for the animation package's Animatable interface.
 // The render loop calls Tick and removes finished non-looping animations.

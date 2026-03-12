@@ -13,14 +13,14 @@ import (
 	"log"
 	"time"
 
-	goui "github.com/achiket/gui-go"
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
+	goui "github.com/achiket123/gui-go"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
 
-	apiclient "github.com/achiket/taskflow/internal/api/client"
-	"github.com/achiket/taskflow/ui/screens"
-	"github.com/achiket/taskflow/ui/state"
-	"github.com/achiket/taskflow/ui/styles"
+	apiclient "github.com/achiket123/taskflow/internal/api/client"
+	"github.com/achiket123/taskflow/ui/screens"
+	"github.com/achiket123/taskflow/ui/state"
+	"github.com/achiket123/taskflow/ui/styles"
 )
 
 func main() {

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
 )
 
 type libraryItem struct {

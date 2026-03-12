@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/achiket/taskflow/internal/db"
-	"github.com/achiket/taskflow/internal/models"
+	"github.com/achiket123/taskflow/internal/db"
+	"github.com/achiket123/taskflow/internal/models"
 )
 
 // ─── UserRepo ─────────────────────────────────────────────────────────────────

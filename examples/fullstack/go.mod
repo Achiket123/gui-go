@@ -1,9 +1,9 @@
-module github.com/achiket/taskflow
+module github.com/achiket123/taskflow
 
 go 1.24.0
 
 require (
-	github.com/achiket/gui-go v0.0.0
+	github.com/achiket123/gui-go v0.0.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
@@ -17,4 +17,4 @@ require (
 )
 
 // Local replace so the GUI library resolves from your workspace.
-replace github.com/achiket/gui-go => ../..
+replace github.com/achiket123/gui-go => ../..

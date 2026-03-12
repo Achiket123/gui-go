@@ -3,9 +3,9 @@
 package state
 
 import (
-	uistream "github.com/achiket/gui-go/state"
-	"github.com/achiket/taskflow/internal/api/client"
-	"github.com/achiket/taskflow/internal/models"
+	uistream "github.com/achiket123/gui-go/state"
+	"github.com/achiket123/taskflow/internal/api/client"
+	"github.com/achiket123/taskflow/internal/models"
 )
 
 // App holds every piece of shared state for the GUI application.

@@ -1,6 +1,6 @@
 # 💰 Personal Finance Tracker
 
-A fully-fledged desktop personal finance application built with `github.com/achiket/gui-go`.
+A fully-fledged desktop personal finance application built with `github.com/achiket123/gui-go`.
 
 > ~2,600 lines of Go across 8 files. Runs natively on Linux (X11/OpenGL).
 
@@ -64,7 +64,7 @@ cd finance-tracker
 go run .
 ```
 
-**Dependencies:** Only `github.com/achiket/gui-go` (pure Go + CGo, X11/OpenGL).
+**Dependencies:** Only `github.com/achiket123/gui-go` (pure Go + CGo, X11/OpenGL).
 
 ---
 

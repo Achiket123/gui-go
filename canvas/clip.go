@@ -1,6 +1,6 @@
 package canvas
 
-import "github.com/achiket/gui-go/render"
+import "github.com/achiket123/gui-go/render"
 
 // clipState tracks the currently active clip region.
 type clipState struct {

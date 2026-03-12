@@ -4,16 +4,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
 )
 
 // TransactionsScreen shows a filterable, scrollable list of all transactions.
 type TransactionsScreen struct {
 	ui.BaseScreen
-	st      *Styles
-	store   *FinanceStore
-	toasts  *ui.ToastManager
+	st     *Styles
+	store  *FinanceStore
+	toasts *ui.ToastManager
 
 	// Widgets
 	searchInput *ui.TextInput
@@ -36,10 +36,10 @@ type TransactionsScreen struct {
 
 func NewTransactionsScreen(st *Styles, store *FinanceStore, toasts *ui.ToastManager) *TransactionsScreen {
 	s := &TransactionsScreen{
-		st:       st,
-		store:    store,
-		toasts:   toasts,
-		hoverRow: -1,
+		st:              st,
+		store:           store,
+		toasts:          toasts,
+		hoverRow:        -1,
 		pendingDeleteID: -1,
 	}
 

@@ -11,8 +11,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/achiket/gui-go/platform"
-	"github.com/achiket/gui-go/render"
+	"github.com/achiket123/gui-go/platform"
+	"github.com/achiket123/gui-go/render"
 )
 
 // SWRenderer draws into a Go image.RGBA then blits the pixels to the X11 window

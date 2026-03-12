@@ -5,9 +5,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/achiket/gui-go/animation"
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
+	"github.com/achiket123/gui-go/animation"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
 )
 
 // AnalyticsScreen shows charts, trends, and spending breakdowns.
@@ -252,7 +252,7 @@ func (a *AnalyticsScreen) Draw(c *canvas.Canvas, x, y, w, h float32) {
 	barSavW := chartBodyW / 7
 	for i, sv := range savings {
 		bx := chartBodyX + float32(i)*(barSavW+2)
-		barPct := float32(math.Abs(sv) / maxSav) * (sbH/2 - 4) * barT
+		barPct := float32(math.Abs(sv)/maxSav) * (sbH/2 - 4) * barT
 		col := colGreen
 		if sv < 0 {
 			col = colRed

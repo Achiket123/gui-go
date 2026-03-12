@@ -3,7 +3,7 @@ package canvas
 import (
 	"testing"
 
-	"github.com/achiket/gui-go/render"
+	"github.com/achiket123/gui-go/render"
 )
 
 // MockRenderer implements render.Renderer but does nothing.

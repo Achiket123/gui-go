@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/achiket/taskflow/internal/models"
-	"github.com/achiket/taskflow/internal/repository"
+	"github.com/achiket123/taskflow/internal/models"
+	"github.com/achiket123/taskflow/internal/repository"
 )
 
 // ErrForbidden is returned when the caller lacks permission.
@@ -262,12 +262,12 @@ func (s *CommentService) Delete(ctx context.Context, commentID, authorID string)
 // ─── DashboardService ─────────────────────────────────────────────────────────
 
 type DashboardStats struct {
-	TotalTasks    int
-	DoneTasks     int
-	InProgress    int
-	OverdueTasks  int
-	Projects      int
-	Members       int
+	TotalTasks     int
+	DoneTasks      int
+	InProgress     int
+	OverdueTasks   int
+	Projects       int
+	Members        int
 	RecentActivity []models.Activity
 }
 

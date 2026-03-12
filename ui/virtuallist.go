@@ -28,8 +28,8 @@ package ui
 import (
 	"math"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/theme"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/theme"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -577,4 +577,3 @@ func clampI(v, lo, hi int) int {
 	}
 	return v
 }
-

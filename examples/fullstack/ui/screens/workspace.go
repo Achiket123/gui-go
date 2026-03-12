@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
-	"github.com/achiket/taskflow/internal/models"
-	"github.com/achiket/taskflow/ui/state"
-	"github.com/achiket/taskflow/ui/styles"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
+	"github.com/achiket123/taskflow/internal/models"
+	"github.com/achiket123/taskflow/ui/state"
+	"github.com/achiket123/taskflow/ui/styles"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -125,14 +125,14 @@ func (s *WorkspaceScreen) Draw(c *canvas.Canvas, x, y, w, h float32) {
 
 type CreateWorkspaceScreen struct {
 	ui.BaseScreen
-	app         *state.App
-	nameInput   *ui.TextInput
-	descInput   *ui.TextInput
-	createBtn   *ui.Button
-	cancelBtn   *ui.Button
-	errorLabel  string
-	loading     bool
-	bounds      canvas.Rect
+	app        *state.App
+	nameInput  *ui.TextInput
+	descInput  *ui.TextInput
+	createBtn  *ui.Button
+	cancelBtn  *ui.Button
+	errorLabel string
+	loading    bool
+	bounds     canvas.Rect
 }
 
 func NewCreateWorkspaceScreen(app *state.App) *CreateWorkspaceScreen {
@@ -150,8 +150,10 @@ func NewCreateWorkspaceScreen(app *state.App) *CreateWorkspaceScreen {
 
 func (s *CreateWorkspaceScreen) Bounds() canvas.Rect { return s.bounds }
 func (s *CreateWorkspaceScreen) Tick(d float64) {
-	s.nameInput.Tick(d); s.descInput.Tick(d)
-	s.createBtn.Tick(d); s.cancelBtn.Tick(d)
+	s.nameInput.Tick(d)
+	s.descInput.Tick(d)
+	s.createBtn.Tick(d)
+	s.cancelBtn.Tick(d)
 }
 func (s *CreateWorkspaceScreen) HandleEvent(e ui.Event) bool {
 	return s.nameInput.HandleEvent(e) || s.descInput.HandleEvent(e) ||
@@ -209,10 +211,10 @@ const sidebarW = float32(220)
 
 type MainScreen struct {
 	ui.BaseScreen
-	app      *state.App
-	sidebar  *SidebarWidget
-	content  ui.Component // current content panel
-	bounds   canvas.Rect
+	app     *state.App
+	sidebar *SidebarWidget
+	content ui.Component // current content panel
+	bounds  canvas.Rect
 }
 
 func NewMainScreen(app *state.App) *MainScreen {
@@ -271,10 +273,10 @@ type SidebarWidget struct {
 	activeIdx int
 	bounds    canvas.Rect
 
-	dashBtn     *ui.Button
-	newProjBtn  *ui.Button
-	logoutBtn   *ui.Button
-	projBtns    []*ui.Button
+	dashBtn    *ui.Button
+	newProjBtn *ui.Button
+	logoutBtn  *ui.Button
+	projBtns   []*ui.Button
 }
 
 func NewSidebarWidget(app *state.App, onSelect func(ui.Component)) *SidebarWidget {
@@ -338,7 +340,9 @@ func (s *SidebarWidget) reloadProjects() {
 
 func (s *SidebarWidget) Bounds() canvas.Rect { return s.bounds }
 func (s *SidebarWidget) Tick(d float64) {
-	s.dashBtn.Tick(d); s.newProjBtn.Tick(d); s.logoutBtn.Tick(d)
+	s.dashBtn.Tick(d)
+	s.newProjBtn.Tick(d)
+	s.logoutBtn.Tick(d)
 	for _, b := range s.projBtns {
 		b.Tick(d)
 	}
@@ -416,11 +420,11 @@ func (s *SidebarWidget) Draw(c *canvas.Canvas, x, y, w, h float32) {
 // ─── DashboardPanel ───────────────────────────────────────────────────────────
 
 type DashboardPanel struct {
-	app    *state.App
-	stats  map[string]any
+	app     *state.App
+	stats   map[string]any
 	loading bool
-	bounds canvas.Rect
-	scroll *ui.ScrollView
+	bounds  canvas.Rect
+	scroll  *ui.ScrollView
 }
 
 func NewDashboardPanel(app *state.App) *DashboardPanel {
@@ -447,7 +451,7 @@ func (p *DashboardPanel) reload(wsID string) {
 	}()
 }
 
-func (p *DashboardPanel) Bounds() canvas.Rect        { return p.bounds }
+func (p *DashboardPanel) Bounds() canvas.Rect         { return p.bounds }
 func (p *DashboardPanel) Tick(d float64)              { p.scroll.Tick(d) }
 func (p *DashboardPanel) HandleEvent(e ui.Event) bool { return p.scroll.HandleEvent(e) }
 func (p *DashboardPanel) Draw(c *canvas.Canvas, x, y, w, h float32) {

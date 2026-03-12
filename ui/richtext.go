@@ -26,8 +26,8 @@ package ui
 import (
 	"strings"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/theme"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/theme"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,16 +38,16 @@ import (
 type SpanKind int
 
 const (
-	SpanText      SpanKind = iota
+	SpanText SpanKind = iota
 	SpanBold
 	SpanItalic
 	SpanBoldItalic
-	SpanCode       // monospace, highlighted background chip
+	SpanCode // monospace, highlighted background chip
 	SpanUnderline
 	SpanStrike
-	SpanLink       // clickable; URL stored in Span.Meta
-	SpanColored    // custom color override
-	SpanCustom     // caller-supplied TextStyle
+	SpanLink    // clickable; URL stored in Span.Meta
+	SpanColored // custom color override
+	SpanCustom  // caller-supplied TextStyle
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ const (
 type Span struct {
 	Text  string
 	Kind  SpanKind
-	Color canvas.Color // non-zero overrides span default color
+	Color canvas.Color     // non-zero overrides span default color
 	Style canvas.TextStyle // used when Kind == SpanCustom
 	Meta  string           // URL for SpanLink
 }
@@ -114,8 +114,8 @@ func DefaultRichTextStyle() RichTextStyle {
 
 // RichText is a multi-span, word-wrapped text component.
 type RichText struct {
-	Spans  []Span
-	Style  RichTextStyle
+	Spans []Span
+	Style RichTextStyle
 
 	// OnLinkClick is called when the user clicks a SpanLink span.
 	OnLinkClick func(url string)
@@ -141,13 +141,15 @@ func (rt *RichText) add(s Span) *RichText {
 	return rt
 }
 
-func (rt *RichText) Text(s string) *RichText       { return rt.add(Span{Text: s, Kind: SpanText}) }
-func (rt *RichText) Bold(s string) *RichText       { return rt.add(Span{Text: s, Kind: SpanBold}) }
-func (rt *RichText) Italic(s string) *RichText     { return rt.add(Span{Text: s, Kind: SpanItalic}) }
-func (rt *RichText) BoldItalic(s string) *RichText { return rt.add(Span{Text: s, Kind: SpanBoldItalic}) }
-func (rt *RichText) Code(s string) *RichText       { return rt.add(Span{Text: s, Kind: SpanCode}) }
-func (rt *RichText) Underline(s string) *RichText  { return rt.add(Span{Text: s, Kind: SpanUnderline}) }
-func (rt *RichText) Strike(s string) *RichText     { return rt.add(Span{Text: s, Kind: SpanStrike}) }
+func (rt *RichText) Text(s string) *RichText   { return rt.add(Span{Text: s, Kind: SpanText}) }
+func (rt *RichText) Bold(s string) *RichText   { return rt.add(Span{Text: s, Kind: SpanBold}) }
+func (rt *RichText) Italic(s string) *RichText { return rt.add(Span{Text: s, Kind: SpanItalic}) }
+func (rt *RichText) BoldItalic(s string) *RichText {
+	return rt.add(Span{Text: s, Kind: SpanBoldItalic})
+}
+func (rt *RichText) Code(s string) *RichText      { return rt.add(Span{Text: s, Kind: SpanCode}) }
+func (rt *RichText) Underline(s string) *RichText { return rt.add(Span{Text: s, Kind: SpanUnderline}) }
+func (rt *RichText) Strike(s string) *RichText    { return rt.add(Span{Text: s, Kind: SpanStrike}) }
 func (rt *RichText) Link(label, url string) *RichText {
 	return rt.add(Span{Text: label, Kind: SpanLink, Meta: url})
 }
@@ -449,4 +451,3 @@ func (rt *RichText) styleFor(s Span) canvas.TextStyle {
 		return st
 	}
 }
-

@@ -4,10 +4,10 @@ package screens
 import (
 	"context"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
-	"github.com/achiket/taskflow/ui/state"
-	"github.com/achiket/taskflow/ui/styles"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
+	"github.com/achiket123/taskflow/ui/state"
+	"github.com/achiket123/taskflow/ui/styles"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════════

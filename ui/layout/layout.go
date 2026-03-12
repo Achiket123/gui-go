@@ -1,6 +1,6 @@
 package layout
 
-import "github.com/achiket/gui-go/canvas"
+import "github.com/achiket123/gui-go/canvas"
 
 // Align specifies child alignment within a layout row/column.
 type Align int

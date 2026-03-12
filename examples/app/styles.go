@@ -1,6 +1,6 @@
 package main
 
-import "github.com/achiket/gui-go/canvas"
+import "github.com/achiket123/gui-go/canvas"
 
 // ── Palette (Catppuccin Mocha) ─────────────────────────────────────────────────
 var (
@@ -44,14 +44,14 @@ type Styles struct {
 
 func NewStyles(fontPath string) *Styles {
 	return &Styles{
-		FontPath: fontPath,
-		H1:       canvas.TextStyle{Color: colText, Size: 24, FontPath: fontPath},
-		H2:       canvas.TextStyle{Color: colText, Size: 18, FontPath: fontPath},
-		H3:       canvas.TextStyle{Color: colSubtext1, Size: 14, FontPath: fontPath},
-		Body:     canvas.TextStyle{Color: colSubtext0, Size: 13, FontPath: fontPath},
-		BodyBold: canvas.TextStyle{Color: colText, Size: 13, FontPath: fontPath},
-		Caption:  canvas.TextStyle{Color: colOverlay0, Size: 11, FontPath: fontPath},
-		Mono:     canvas.TextStyle{Color: colText, Size: 13, FontPath: fontPath},
+		FontPath:   fontPath,
+		H1:         canvas.TextStyle{Color: colText, Size: 24, FontPath: fontPath},
+		H2:         canvas.TextStyle{Color: colText, Size: 18, FontPath: fontPath},
+		H3:         canvas.TextStyle{Color: colSubtext1, Size: 14, FontPath: fontPath},
+		Body:       canvas.TextStyle{Color: colSubtext0, Size: 13, FontPath: fontPath},
+		BodyBold:   canvas.TextStyle{Color: colText, Size: 13, FontPath: fontPath},
+		Caption:    canvas.TextStyle{Color: colOverlay0, Size: 11, FontPath: fontPath},
+		Mono:       canvas.TextStyle{Color: colText, Size: 13, FontPath: fontPath},
 		AccentBody: canvas.TextStyle{Color: colAccent, Size: 13, FontPath: fontPath},
 		GreenBody:  canvas.TextStyle{Color: colGreen, Size: 13, FontPath: fontPath},
 		RedBody:    canvas.TextStyle{Color: colRed, Size: 13, FontPath: fontPath},

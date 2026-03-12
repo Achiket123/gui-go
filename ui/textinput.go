@@ -5,8 +5,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/achiket/gui-go/animation"
-	"github.com/achiket/gui-go/canvas"
+	"github.com/achiket123/gui-go/animation"
+	"github.com/achiket123/gui-go/canvas"
 )
 
 // TextInputStyle defines the appearance of a TextInput component.

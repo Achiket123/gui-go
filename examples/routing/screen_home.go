@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
-	"github.com/achiket/gui-go/ui/layout"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
+	"github.com/achiket123/gui-go/ui/layout"
 )
 
 type card struct {

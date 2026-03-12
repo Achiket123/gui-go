@@ -19,11 +19,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/achiket/taskflow/internal/api"
-	"github.com/achiket/taskflow/internal/auth"
-	"github.com/achiket/taskflow/internal/db"
-	"github.com/achiket/taskflow/internal/repository"
-	"github.com/achiket/taskflow/internal/service"
+	"github.com/achiket123/taskflow/internal/api"
+	"github.com/achiket123/taskflow/internal/auth"
+	"github.com/achiket123/taskflow/internal/db"
+	"github.com/achiket123/taskflow/internal/repository"
+	"github.com/achiket123/taskflow/internal/service"
 )
 
 func main() {

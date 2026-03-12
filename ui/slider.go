@@ -3,7 +3,7 @@ package ui
 import (
 	"math"
 
-	"github.com/achiket/gui-go/canvas"
+	"github.com/achiket123/gui-go/canvas"
 )
 
 // SliderStyle describes the visual appearance of a Slider.

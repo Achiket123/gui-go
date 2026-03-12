@@ -28,7 +28,7 @@ A lightweight, GPU-accelerated 2D GUI library for Go, specifically designed for 
 `goui` uses CGo to interface with X11 directly. Ensure you have the X11 and OpenGL development headers installed on your system.
 
 ```bash
-go get https://github.com/achiket/gui-go
+go get https://github.com/achiket123/gui-go
 
 ```
 
@@ -38,8 +38,8 @@ go get https://github.com/achiket/gui-go
 package main
 
 import (
-	goui "github.com/achiket/gui-go"
-	"github.com/achiket/gui-go/canvas"
+	goui "github.com/achiket123/gui-go"
+	"github.com/achiket123/gui-go/canvas"
 )
 
 func main() {

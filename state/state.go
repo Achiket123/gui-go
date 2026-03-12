@@ -37,6 +37,7 @@ type subscriber struct {
 
 var subIDCounter uint64
 
+// nextSubID returns a globally unique, atomically incremented subscriber ID.
 func nextSubID() uint64 { return atomic.AddUint64(&subIDCounter, 1) }
 
 type subList struct {
@@ -76,26 +77,41 @@ func (s *subList) notify() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Signal[T]
+// Reactive primitives (Signal, SignalAny)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Signal is a generic reactive value container.
-type Signal[T comparable] struct {
+// baseSignal provides the common storage and subscriber logic for all Signals.
+type baseSignal[T any] struct {
 	mu    sync.RWMutex
 	value T
 	subs  subList
 }
 
-// New creates a new Signal with an initial value.
-func New[T comparable](initial T) *Signal[T] {
-	return &Signal[T]{value: initial}
-}
-
-// Get returns the current value.  Safe from any goroutine.
-func (s *Signal[T]) Get() T {
+func (s *baseSignal[T]) Get() T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.value
+}
+
+func (s *baseSignal[T]) Subscribe(fn func(T)) func() {
+	id := s.subs.add(func() { fn(s.Get()) })
+	return func() { s.subs.remove(id) }
+}
+
+func (s *baseSignal[T]) notifyOnChange(fn func()) func() {
+	id := s.subs.add(fn)
+	return func() { s.subs.remove(id) }
+}
+
+// Signal is a generic reactive value container for comparable types.
+// It only notifies subscribers if the value actually changes (equality check).
+type Signal[T comparable] struct {
+	baseSignal[T]
+}
+
+// New creates a new Signal with an initial value.
+func New[T comparable](initial T) *Signal[T] {
+	return &Signal[T]{baseSignal[T]{value: initial}}
 }
 
 // Set updates the value and notifies subscribers if the value changed.
@@ -109,27 +125,52 @@ func (s *Signal[T]) Set(v T) {
 	}
 }
 
-// Update applies a transform function atomically.
+// Update applies a transform function atomically and notifies on change.
 func (s *Signal[T]) Update(fn func(T) T) {
 	s.mu.Lock()
 	old := s.value
 	nv := fn(old)
 	s.value = nv
 	s.mu.Unlock()
+	// Note: Comparing 'old' and 'nv' after unlocking is safe because they are
+	// local copies of the state captured during the locked transform.
 	if old != nv {
 		s.subs.notify()
 	}
 }
 
-// Subscribe registers a callback invoked whenever the value changes.
-// Returns an unsubscribe function.
-func (s *Signal[T]) Subscribe(fn func(T)) func() {
-	id := s.subs.add(func() { fn(s.Get()) })
-	return func() { s.subs.remove(id) }
+// OnChange is an alias for Subscribe for ergonomics.
+func (s *Signal[T]) OnChange(fn func(T)) func() { return s.Subscribe(fn) }
+
+// SignalAny is a reactive value container for any type (including non-comparable).
+// Unlike Signal, it DOES NOT perform an equality check on Set/Update; it always notifies.
+type SignalAny[T any] struct {
+	baseSignal[T]
+}
+
+// NewSignalAny creates a new SignalAny with an initial value.
+func NewSignalAny[T any](initial T) *SignalAny[T] {
+	return &SignalAny[T]{baseSignal[T]{value: initial}}
+}
+
+// Set updates the value and always notifies subscribers.
+func (s *SignalAny[T]) Set(v T) {
+	s.mu.Lock()
+	s.value = v
+	s.mu.Unlock()
+	s.subs.notify()
+}
+
+// Update applies a transform function atomically and always notifies.
+func (s *SignalAny[T]) Update(fn func(T) T) {
+	s.mu.Lock()
+	s.value = fn(s.value)
+	s.mu.Unlock()
+	s.subs.notify()
 }
 
 // OnChange is an alias for Subscribe for ergonomics.
-func (s *Signal[T]) OnChange(fn func(T)) func() { return s.Subscribe(fn) }
+func (s *SignalAny[T]) OnChange(fn func(T)) func() { return s.Subscribe(fn) }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Computed[T]  (derived / memoised value)
@@ -244,9 +285,7 @@ func (s *Store[S]) Get() S {
 func (s *Store[S]) Mutate(fn func(*S)) {
 	s.mu.Lock()
 	fn(&s.state)
-	snapshot := s.state
 	s.mu.Unlock()
-	_ = snapshot
 	s.subs.notify()
 }
 
@@ -321,36 +360,6 @@ func (h *History[T]) Redo() bool {
 	h.mu.Unlock()
 	h.sig.Set(next)
 	return true
-}
-
-// ── SignalAny[T] ─────────────────────────────────────────────────────────────
-
-type SignalAny[T any] struct {
-	mu   sync.RWMutex
-	val  T
-	subs subList
-}
-
-func NewSignalAny[T any](initial T) *SignalAny[T] {
-	return &SignalAny[T]{val: initial}
-}
-
-func (s *SignalAny[T]) Get() T {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.val
-}
-
-func (s *SignalAny[T]) Set(v T) {
-	s.mu.Lock()
-	s.val = v
-	s.mu.Unlock()
-	s.subs.notify()
-}
-
-func (s *SignalAny[T]) Subscribe(fn func(T)) func() {
-	id := s.subs.add(func() { fn(s.Get()) })
-	return func() { s.subs.remove(id) }
 }
 
 // ── EventBus ─────────────────────────────────────────────────────────────────

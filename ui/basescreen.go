@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/achiket/gui-go/canvas"
+import "github.com/achiket123/gui-go/canvas"
 
 // BaseScreen provides no-op implementations of OnEnter/OnLeave/Bounds/Tick
 // so concrete screens only override what they need.

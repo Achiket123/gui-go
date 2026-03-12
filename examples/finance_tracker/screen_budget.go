@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/achiket/gui-go/animation"
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
+	"github.com/achiket123/gui-go/animation"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
 )
 
 // BudgetScreen shows budget usage with animated progress bars.

@@ -3,8 +3,8 @@ package ui
 import (
 	"time"
 
-	"github.com/achiket/gui-go/animation"
-	"github.com/achiket/gui-go/canvas"
+	"github.com/achiket123/gui-go/animation"
+	"github.com/achiket123/gui-go/canvas"
 )
 
 // ButtonStyle describes the visual appearance of a Button.

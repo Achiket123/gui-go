@@ -7,7 +7,7 @@
 package ui
 
 import (
-	"github.com/achiket/gui-go/canvas"
+	"github.com/achiket123/gui-go/canvas"
 )
 
 // Event is a minimal event struct for component hit-testing.

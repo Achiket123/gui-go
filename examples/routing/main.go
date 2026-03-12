@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	goui "github.com/achiket/gui-go"
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
+	goui "github.com/achiket123/gui-go"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
 )
 
 const (

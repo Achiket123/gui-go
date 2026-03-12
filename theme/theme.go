@@ -16,7 +16,7 @@ package theme
 import (
 	"sync"
 
-	"github.com/achiket/gui-go/canvas"
+	"github.com/achiket123/gui-go/canvas"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,15 +63,15 @@ type Palette struct {
 
 // TypeScale maps logical roles to concrete TextStyle values.
 type TypeScale struct {
-	Display    canvas.TextStyle // hero headings
-	H1         canvas.TextStyle
-	H2         canvas.TextStyle
-	H3         canvas.TextStyle
-	Body       canvas.TextStyle
-	BodySmall  canvas.TextStyle
-	Label      canvas.TextStyle // form labels, captions
-	Code       canvas.TextStyle // monospace
-	Hint       canvas.TextStyle // placeholder text
+	Display   canvas.TextStyle // hero headings
+	H1        canvas.TextStyle
+	H2        canvas.TextStyle
+	H3        canvas.TextStyle
+	Body      canvas.TextStyle
+	BodySmall canvas.TextStyle
+	Label     canvas.TextStyle // form labels, captions
+	Code      canvas.TextStyle // monospace
+	Hint      canvas.TextStyle // placeholder text
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,12 +103,12 @@ func spacingFrom(base float32) Spacing {
 
 // Radii holds border-radius tokens.
 type Radii struct {
-	None   float32 // 0
-	SM     float32 // 4
-	MD     float32 // 8
-	LG     float32 // 12
-	XL     float32 // 16
-	Full   float32 // 9999 (pill)
+	None float32 // 0
+	SM   float32 // 4
+	MD   float32 // 8
+	LG   float32 // 12
+	XL   float32 // 16
+	Full float32 // 9999 (pill)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,8 +227,8 @@ func Dark() *Theme {
 			ScrollThumb:   canvas.Hex("#45475A"),
 			ScrollHover:   canvas.Hex("#585B70"),
 		},
-		Type: buildTypeScale(canvas.Hex("#CDD6F4"), canvas.Hex("#6C7086")),
-		Space: sp,
+		Type:   buildTypeScale(canvas.Hex("#CDD6F4"), canvas.Hex("#6C7086")),
+		Space:  sp,
 		Radius: Radii{None: 0, SM: 4, MD: 8, LG: 12, XL: 16, Full: 9999},
 		Elevation: ElevationScale{
 			{0, 1, 2, canvas.Color{A: 0.10}},

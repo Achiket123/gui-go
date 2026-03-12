@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/achiket/taskflow/internal/auth"
-	"github.com/achiket/taskflow/internal/models"
-	"github.com/achiket/taskflow/internal/service"
+	"github.com/achiket123/taskflow/internal/auth"
+	"github.com/achiket123/taskflow/internal/models"
+	"github.com/achiket123/taskflow/internal/service"
 )
 
 // ─── Server ───────────────────────────────────────────────────────────────────
@@ -71,39 +71,39 @@ func (s *Server) registerRoutes() {
 
 	// Auth.
 	m.HandleFunc("POST /api/auth/register", s.handleRegister)
-	m.HandleFunc("POST /api/auth/login",    s.handleLogin)
-	m.HandleFunc("POST /api/auth/refresh",  s.handleRefresh)
-	m.HandleFunc("POST /api/auth/logout",   s.auth(s.handleLogout))
+	m.HandleFunc("POST /api/auth/login", s.handleLogin)
+	m.HandleFunc("POST /api/auth/refresh", s.handleRefresh)
+	m.HandleFunc("POST /api/auth/logout", s.auth(s.handleLogout))
 
 	// Me.
-	m.HandleFunc("GET  /api/me",            s.auth(s.handleMe))
-	m.HandleFunc("PUT  /api/me/password",   s.auth(s.handleChangePassword))
+	m.HandleFunc("GET  /api/me", s.auth(s.handleMe))
+	m.HandleFunc("PUT  /api/me/password", s.auth(s.handleChangePassword))
 
 	// Workspaces.
-	m.HandleFunc("GET  /api/workspaces",        s.auth(s.handleListWorkspaces))
-	m.HandleFunc("POST /api/workspaces",        s.auth(s.handleCreateWorkspace))
-	m.HandleFunc("GET  /api/workspaces/{id}",   s.auth(s.handleGetWorkspace))
+	m.HandleFunc("GET  /api/workspaces", s.auth(s.handleListWorkspaces))
+	m.HandleFunc("POST /api/workspaces", s.auth(s.handleCreateWorkspace))
+	m.HandleFunc("GET  /api/workspaces/{id}", s.auth(s.handleGetWorkspace))
 
 	// Projects.
-	m.HandleFunc("GET  /api/workspaces/{wsID}/projects",       s.auth(s.handleListProjects))
-	m.HandleFunc("POST /api/workspaces/{wsID}/projects",       s.auth(s.handleCreateProject))
-	m.HandleFunc("GET  /api/projects/{id}",                    s.auth(s.handleGetProject))
-	m.HandleFunc("PUT  /api/projects/{id}",                    s.auth(s.handleUpdateProject))
-	m.HandleFunc("DELETE /api/projects/{id}",                  s.auth(s.handleArchiveProject))
+	m.HandleFunc("GET  /api/workspaces/{wsID}/projects", s.auth(s.handleListProjects))
+	m.HandleFunc("POST /api/workspaces/{wsID}/projects", s.auth(s.handleCreateProject))
+	m.HandleFunc("GET  /api/projects/{id}", s.auth(s.handleGetProject))
+	m.HandleFunc("PUT  /api/projects/{id}", s.auth(s.handleUpdateProject))
+	m.HandleFunc("DELETE /api/projects/{id}", s.auth(s.handleArchiveProject))
 
 	// Tasks.
-	m.HandleFunc("GET  /api/projects/{projID}/tasks",  s.auth(s.handleListTasks))
-	m.HandleFunc("POST /api/projects/{projID}/tasks",  s.auth(s.handleCreateTask))
-	m.HandleFunc("GET  /api/tasks/{id}",               s.auth(s.handleGetTask))
-	m.HandleFunc("PUT  /api/tasks/{id}",               s.auth(s.handleUpdateTask))
-	m.HandleFunc("PATCH /api/tasks/{id}/status",       s.auth(s.handleUpdateTaskStatus))
-	m.HandleFunc("PATCH /api/tasks/{id}/reorder",      s.auth(s.handleReorderTask))
-	m.HandleFunc("DELETE /api/tasks/{id}",             s.auth(s.handleDeleteTask))
+	m.HandleFunc("GET  /api/projects/{projID}/tasks", s.auth(s.handleListTasks))
+	m.HandleFunc("POST /api/projects/{projID}/tasks", s.auth(s.handleCreateTask))
+	m.HandleFunc("GET  /api/tasks/{id}", s.auth(s.handleGetTask))
+	m.HandleFunc("PUT  /api/tasks/{id}", s.auth(s.handleUpdateTask))
+	m.HandleFunc("PATCH /api/tasks/{id}/status", s.auth(s.handleUpdateTaskStatus))
+	m.HandleFunc("PATCH /api/tasks/{id}/reorder", s.auth(s.handleReorderTask))
+	m.HandleFunc("DELETE /api/tasks/{id}", s.auth(s.handleDeleteTask))
 
 	// Comments.
-	m.HandleFunc("GET  /api/tasks/{taskID}/comments",      s.auth(s.handleListComments))
-	m.HandleFunc("POST /api/tasks/{taskID}/comments",      s.auth(s.handleAddComment))
-	m.HandleFunc("DELETE /api/comments/{id}",              s.auth(s.handleDeleteComment))
+	m.HandleFunc("GET  /api/tasks/{taskID}/comments", s.auth(s.handleListComments))
+	m.HandleFunc("POST /api/tasks/{taskID}/comments", s.auth(s.handleAddComment))
+	m.HandleFunc("DELETE /api/comments/{id}", s.auth(s.handleDeleteComment))
 
 	// Dashboard.
 	m.HandleFunc("GET /api/workspaces/{wsID}/dashboard", s.auth(s.handleDashboard))
@@ -381,13 +381,13 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 	claims := claimsFrom(r.Context())
 	projID := r.PathValue("projID")
 	var body struct {
-		Title       string             `json:"title"`
-		Description string             `json:"description"`
-		Status      models.TaskStatus  `json:"status"`
+		Title       string              `json:"title"`
+		Description string              `json:"description"`
+		Status      models.TaskStatus   `json:"status"`
 		Priority    models.TaskPriority `json:"priority"`
-		AssigneeID  string             `json:"assignee_id"`
-		WorkspaceID string             `json:"workspace_id"`
-		LabelIDs    []string           `json:"label_ids"`
+		AssigneeID  string              `json:"assignee_id"`
+		WorkspaceID string              `json:"workspace_id"`
+		LabelIDs    []string            `json:"label_ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
 		writeError(w, http.StatusBadRequest, "title required")

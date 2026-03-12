@@ -9,7 +9,7 @@ import (
 	_ "image/png"
 	"os"
 
-	"github.com/achiket/gui-go/render"
+	"github.com/achiket123/gui-go/render"
 )
 
 // Image wraps a GPU texture and its pixel dimensions.

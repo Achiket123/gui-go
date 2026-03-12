@@ -1,3 +1,5 @@
+//go:build debug
+
 // Package devtools provides development-time utilities for goui.
 //
 // None of these are included in production builds.
@@ -21,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/ui"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/ui"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,12 +138,12 @@ func drawDashedRect(c *canvas.Canvas, x, y, w, h, t, dl, gap float32, p canvas.P
 
 // FPSOverlay draws a small frame-time / FPS counter in one corner.
 type FPSOverlay struct {
-	Corner   int     // 0=TL 1=TR 2=BL 3=BR
-	BgAlpha  float32 // 0–1
-	Padding  float32
-	frames   []float64 // recent deltas
-	mu       sync.Mutex
-	bounds   canvas.Rect
+	Corner  int     // 0=TL 1=TR 2=BL 3=BR
+	BgAlpha float32 // 0–1
+	Padding float32
+	frames  []float64 // recent deltas
+	mu      sync.Mutex
+	bounds  canvas.Rect
 }
 
 func NewFPSOverlay() *FPSOverlay {
@@ -158,9 +160,9 @@ func (f *FPSOverlay) RecordFrame(delta float64) {
 	f.mu.Unlock()
 }
 
-func (f *FPSOverlay) Bounds() canvas.Rect          { return f.bounds }
-func (f *FPSOverlay) Tick(_ float64)               {}
-func (f *FPSOverlay) HandleEvent(_ ui.Event) bool  { return false }
+func (f *FPSOverlay) Bounds() canvas.Rect         { return f.bounds }
+func (f *FPSOverlay) Tick(_ float64)              {}
+func (f *FPSOverlay) HandleEvent(_ ui.Event) bool { return false }
 
 func (f *FPSOverlay) Draw(c *canvas.Canvas, x, y, w, h float32) {
 	f.mu.Lock()
@@ -334,7 +336,7 @@ func (hr *HotReloader) Stop() {
 func (hr *HotReloader) snapshot() {
 	hr.mu.Lock()
 	defer hr.mu.Unlock()
-	filepath.WalkDir(hr.Dir, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(hr.Dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d == nil || d.IsDir() {
 			return nil
 		}
@@ -346,13 +348,16 @@ func (hr *HotReloader) snapshot() {
 		}
 		return nil
 	})
+	if err != nil {
+		log.Printf("devtools: HotReloader.snapshot WalkDir error: %v", err)
+	}
 }
 
 func (hr *HotReloader) hasChanged() bool {
 	hr.mu.Lock()
 	defer hr.mu.Unlock()
 	changed := false
-	filepath.WalkDir(hr.Dir, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(hr.Dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d == nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
 			return nil
 		}
@@ -365,11 +370,31 @@ func (hr *HotReloader) hasChanged() bool {
 		}
 		return nil
 	})
+	if err != nil {
+		log.Printf("devtools: HotReloader.hasChanged WalkDir error: %v", err)
+	}
 	return changed
 }
 
 func (hr *HotReloader) build() error {
-	cmd := exec.Command(hr.BuildCmd[0], hr.BuildCmd[1:]...) //nolint:gosec
+	if len(hr.BuildCmd) == 0 {
+		return fmt.Errorf("HotReloader: BuildCmd is empty")
+	}
+
+	// Simple allowlist for common build/wrapper tools.
+	bin := hr.BuildCmd[0]
+	allowed := false
+	for _, a := range []string{"go", "fvm", "make", "task", "shellcheck"} {
+		if bin == a || strings.HasSuffix(bin, "/"+a) {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return fmt.Errorf("HotReloader: binary %q not in allowlist", bin)
+	}
+
+	cmd := exec.Command(bin, hr.BuildCmd[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

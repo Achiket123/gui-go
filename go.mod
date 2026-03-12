@@ -1,4 +1,4 @@
-module github.com/achiket/gui-go
+module github.com/achiket123/gui-go
 
 go 1.24.0
 

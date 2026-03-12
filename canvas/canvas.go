@@ -16,8 +16,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/achiket/gui-go/render"
-	"github.com/achiket/gui-go/render/gl"
+	"github.com/achiket123/gui-go/render"
+	"github.com/achiket123/gui-go/render/gl"
 )
 
 // fontKey uniquely identifies a loaded font.

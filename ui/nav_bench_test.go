@@ -3,8 +3,8 @@ package ui
 import (
 	"testing"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/render"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/render"
 )
 
 // DummyScreen implements the Screen interface for benchmarking.

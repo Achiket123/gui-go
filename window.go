@@ -4,11 +4,11 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/platform"
-	"github.com/achiket/gui-go/render"
-	"github.com/achiket/gui-go/render/gl"
-	"github.com/achiket/gui-go/ui"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/platform"
+	"github.com/achiket123/gui-go/render"
+	"github.com/achiket123/gui-go/render/gl"
+	"github.com/achiket123/gui-go/ui"
 )
 
 // Window represents a top-level X11 window.
@@ -229,8 +229,8 @@ func (w *Window) Show() {
 
 	platform.MapWindow(w.display, w.xwin)
 
-	// If an OnDrawGL callback was registered, initialise the GL renderer.
-	if w.onDrawCanvas != nil {
+	// If an OnDrawGL callback was registered OR components were added, initialise the GL renderer.
+	if w.onDrawCanvas != nil || len(w.components) > 0 {
 		glr := gl.NewGL2DRenderer()
 		if err := glr.Init(w.display, w.xwin, w.width, w.height); err == nil {
 			w.renderer = glr

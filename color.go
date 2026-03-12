@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"unsafe"
 
-	"github.com/achiket/gui-go/platform"
+	"github.com/achiket123/gui-go/platform"
 )
 
 // Color represents an RGB color.

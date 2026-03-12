@@ -13,14 +13,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/achiket/taskflow/internal/models"
+	"github.com/achiket123/taskflow/internal/models"
 )
 
 // Client talks to the TaskFlow REST API.
 type Client struct {
-	base        string
-	http        *http.Client
-	mu          sync.RWMutex
+	base         string
+	http         *http.Client
+	mu           sync.RWMutex
 	accessToken  string
 	refreshToken string
 

@@ -3,8 +3,8 @@ package goui
 import (
 	"time"
 
-	"github.com/achiket/gui-go/canvas"
-	"github.com/achiket/gui-go/platform"
+	"github.com/achiket123/gui-go/canvas"
+	"github.com/achiket123/gui-go/platform"
 )
 
 const targetFPS = 60
@@ -52,21 +52,30 @@ func (l *loop) run() {
 		if w.rendererIsGL && w.renderer != nil {
 			// --- v2: OpenGL path ---
 			w.renderer.BeginFrame([4]float32{0.08, 0.08, 0.12, 1})
-			if w.onDrawCanvas != nil {
+			if w.onDrawCanvas != nil || len(w.components) > 0 {
 				c := canvas.NewCanvas(w.renderer, w.width, w.height)
-				// Tick registered UI components before drawing.
-				// They are drawn manually by the user within onDrawCanvas!
+				// Tick and draw registered UI components.
 				for _, comp := range w.components {
 					comp.Tick(delta)
+					comp.Draw(c, 0, 0, float32(w.width), float32(w.height))
 				}
-				w.onDrawCanvas(c)
+				if w.onDrawCanvas != nil {
+					w.onDrawCanvas(c)
+				}
 			}
 			w.renderer.EndFrame()
 		} else {
 			// --- v1: Xlib Pixmap path ---
-			if w.onDraw != nil {
+			if w.onDraw != nil || len(w.components) > 0 {
 				c := newCanvas(w)
-				w.onDraw(c)
+				for _, comp := range w.components {
+					comp.Tick(delta)
+					// Note: v1 components use the old Xlib canvas which is different.
+					// Implementation for v1 components not fully supported here.
+				}
+				if w.onDraw != nil {
+					w.onDraw(c)
+				}
 			}
 			if w.pixmap != 0 {
 				platform.CopyArea(w.display, w.pixmap, w.xwin, w.gc,
