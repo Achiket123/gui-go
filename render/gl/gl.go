@@ -54,6 +54,7 @@ typedef void  (*PFNGLUNIFORMMATRIX4FV)(GLint, GLsizei, GLboolean, const GLfloat*
 typedef void  (*PFNGLACTIVETEXTURE_FN)(GLenum);
 typedef void  (*PFNGLGENERATEFRAGMENTSAMPLEMASKSNV)(GLuint, GLbitfield);
 typedef void  (*PFNGLDRAWELEMENTSBASEVERTEX)(GLenum, GLsizei, GLenum, const void*, GLint);
+typedef void  (*PFNGLBLENDFUNCSEPARATE)(GLenum, GLenum, GLenum, GLenum);
 
 // Global function pointers filled in by goGLInit().
 static PFNGLGENBUFFERS           pGenBuffers;
@@ -86,6 +87,7 @@ static PFNGLUNIFORM4F            pUniform4f;
 static PFNGLUNIFORMMATRIX3FV     pUniformMatrix3fv;
 static PFNGLUNIFORMMATRIX4FV     pUniformMatrix4fv;
 static PFNGLACTIVETEXTURE_FN     pActiveTexture;
+static PFNGLBLENDFUNCSEPARATE    pBlendFuncSeparate;
 
 #define LOAD(name, type, sym) name = (type)(uintptr_t)getGLProcAddress(sym)
 
@@ -120,6 +122,7 @@ static void goGLInit(void) {
     LOAD(pUniformMatrix3fv,        PFNGLUNIFORMMATRIX3FV,        "glUniformMatrix3fv");
     LOAD(pUniformMatrix4fv,        PFNGLUNIFORMMATRIX4FV,        "glUniformMatrix4fv");
     LOAD(pActiveTexture,           PFNGLACTIVETEXTURE_FN,        "glActiveTexture");
+    LOAD(pBlendFuncSeparate,       PFNGLBLENDFUNCSEPARATE,       "glBlendFuncSeparate");
 }
 
 // --- Thin wrappers (called from Go) ---
@@ -200,7 +203,7 @@ static void setViewport(int w, int h) { glViewport(0, 0, w, h); }
 static void clearColor(float r, float g, float b, float a) { glClearColor(r,g,b,a); glClear(GL_COLOR_BUFFER_BIT); }
 static void enableBlend(void) {
     glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    pBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 }
 static void scissorOn(int x, int y, int w, int h) {
     glEnable(GL_SCISSOR_TEST);
